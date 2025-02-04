@@ -11,6 +11,8 @@ import { UserGroupController } from './user-group/user-group.controller';
 import { UserGroupService } from './user-group/user-group.service';
 import { UserController } from './user/user.controller';
 import { UserService } from './user/user.service';
+import { MenuController } from './menu/menu.controller';
+import { MenuService } from './menu/menu.service';
 
 @Module({
     imports: [
@@ -23,6 +25,7 @@ import { UserService } from './user/user.service';
         AuthenticationController,
         UserController,
         UserGroupController,
+        MenuController,
     ],
     providers: [
         JwtStrategy,
@@ -31,6 +34,7 @@ import { UserService } from './user/user.service';
         AuthenticationService,
         UserService,
         UserGroupService,
+        MenuService,
     ],
 })
 export class AppModule { }

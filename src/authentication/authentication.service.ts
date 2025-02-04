@@ -19,6 +19,13 @@ export class AuthenticationService {
                 where: {
                     username: username,
                     is_active: true
+                },
+                include: {
+                    user_group: {
+                        select: {
+                            user_group: true
+                        }
+                    }
                 }
             });
 
@@ -77,7 +84,15 @@ export class AuthenticationService {
                 status: true,
                 message: "OK",
                 data: {
-                    ...data,
+                    id_user: user.id_user,
+                    id_user_group: user.id_user_group,
+                    user_group: user.user_group.user_group,
+                    username: user.username,
+                    full_name: user.full_name,
+                    email: user.email,
+                    phone: user.phone,
+                    whatsapp: user.whatsapp,
+                    notes: user.notes,
                     token: token,
                 }
             }
@@ -167,7 +182,7 @@ export class AuthenticationService {
             const createUser = await this._prismaService.user.create({
                 data: {
                     id_user_group: parseInt(payload.id_user_group as any),
-                    username: data.username,
+                    username: payload.username,
                     email: payload.email,
                     password: await bcrypt.hash(payload.password, salt),
                     full_name: payload.full_name,
