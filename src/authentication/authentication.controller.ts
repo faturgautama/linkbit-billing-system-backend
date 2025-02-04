@@ -13,11 +13,11 @@ export class AuthenticationController {
         private _authenticationService: AuthenticationService,
     ) { }
 
-    @Post('sign-in')
+    @Post('login')
     @ApiResponse({ status: 200, description: 'Success', type: AuthenticationModel.Login })
-    async signInCustomer(@Body() body: AuthenticationModel.ILogin, @Res() res: Response): Promise<any> {
+    async login(@Body() body: AuthenticationModel.ILoginPayload, @Res() res: Response): Promise<any> {
         try {
-            const data = await this._authenticationService.login(body.email, body.password);
+            const data = await this._authenticationService.login(body.username, body.password);
             return res.status(HttpStatus.OK).json(data);
         } catch (error) {
             const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
@@ -29,11 +29,32 @@ export class AuthenticationController {
         }
     }
 
-    @Post('register')
+    @Get('logout')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: AuthenticationModel.Login })
-    async registerUser(@Body() body: AuthenticationModel.IRegister, @Res() res: Response): Promise<any> {
+    async logout(@Req() req: Request, @Res() res: Response): Promise<any> {
         try {
-            const data = await this._authenticationService.register(body);
+            const data = await this._authenticationService.logout(req);
+            return res.status(HttpStatus.OK).json(data);
+
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
+
+    @Post('register')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    @ApiResponse({ status: 200, description: 'Success', type: AuthenticationModel.Login })
+    async register(@Body() body: AuthenticationModel.IRegisterPayload, @Req() req: Request, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._authenticationService.register(req, body);
             return res.status(HttpStatus.OK).json(data);
 
         } catch (error) {

@@ -1,10 +1,11 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Scope } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/prisma.service';
 import { AuthenticationModel } from './authentication.model';
 import { Request } from 'express';
+import * as bcrypt from 'bcrypt';
 
-@Injectable()
+@Injectable({ scope: Scope.TRANSIENT })
 export class AuthenticationService {
 
     constructor(
@@ -12,11 +13,12 @@ export class AuthenticationService {
         private _prismaService: PrismaService,
     ) { }
 
-    async login(email: string, password: string): Promise<AuthenticationModel.Login> {
+    async login(username: string, password: string): Promise<AuthenticationModel.Login> {
         try {
             const user = await this._prismaService.user.findFirst({
                 where: {
-                    email: email,
+                    username: username,
+                    is_active: true
                 }
             });
 
@@ -28,135 +30,153 @@ export class AuthenticationService {
                 }
             }
 
-            const match = password == user.password
+            const match = await bcrypt.compare(password, user.password);
 
             if (!match) {
                 return {
                     status: false,
                     message: "Mohon Periksa Email / Password Anda",
-                    data: null as any,
+                    data: null,
                 }
-            }
+            };
+
+            const updateLastLogin = await this._prismaService
+                .user
+                .update({
+                    where: {
+                        id_user: parseInt(user.id_user as any),
+                    },
+                    data: {
+                        last_login: new Date(),
+                        last_logout: null
+                    }
+                });
+
+            if (!updateLastLogin) {
+                return {
+                    status: false,
+                    message: "Gagal Update Waktu Login",
+                    data: null,
+                }
+            };
 
             let token: string = "", data: any = null;
 
-            if (user.id_guru && !user.id_siswa) {
-                const guru = await this._prismaService.guru.findUnique({
-                    where: {
-                        id_guru: user.id_guru
-                    },
-                    include: {
-                        sekolah: true,
-                    }
-                });
-
-                data = guru;
-
-                token = this._jwtService.sign({
-                    email: user.email,
-                    id_user: user.id_user,
-                    nama_lengkap: guru.nama_lengkap,
-                })
-            }
-
-            if (!user.id_guru && user.id_siswa) {
-                const siswa = await this._prismaService.siswa.findUnique({
-                    where: {
-                        id_siswa: user.id_siswa
-                    },
-                    include: {
-                        kelas: {
-                            include: {
-                                sekolah: true,
-                            }
-                        }
-                    }
-                });
-
-                data = siswa;
-
-                token = this._jwtService.sign({
-                    email: user.email,
-                    id_user: user.id_user,
-                    nama_lengkap: siswa.nama_lengkap,
-                })
-            }
-
-            if (!user.id_guru && !user.id_siswa) {
-                token = this._jwtService.sign({
-                    email: user.email,
-                    id_user: user.id_user,
-                    nama_lengkap: "SUPERADMIN",
-                })
-            }
+            token = this._jwtService.sign({
+                id_user: user.id_user,
+                id_user_group: user.id_user_group,
+                username: user.username,
+                full_name: user.full_name,
+                email: user.email,
+                phone: user.phone,
+                whatsapp: user.whatsapp,
+                notes: user.notes,
+            });
 
             return {
                 status: true,
                 message: "OK",
                 data: {
-                    id_user: user.id_user,
-                    token: token,
                     ...data,
-                    nama_lengkap: data ? data.nama_lengkap : 'SUPERADMIN'
+                    token: token,
                 }
             }
 
         } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
             throw new HttpException(
                 {
-                    status: HttpStatus.INTERNAL_SERVER_ERROR,
-                    message: error.message,
+                    status: false,
+                    message: error.message
                 },
-                HttpStatus.INTERNAL_SERVER_ERROR,
+                status
             );
         }
     }
 
-    async register(payload: AuthenticationModel.IRegister): Promise<{ result: boolean, message: string, data: any }> {
+    async logout(req: Request): Promise<any> {
+        try {
+            const updateLastLogout = await this._prismaService
+                .user
+                .update({
+                    where: {
+                        id_user: parseInt(req['user']['id_user'] as any),
+                    },
+                    data: {
+                        last_login: null,
+                        last_logout: new Date(),
+                    }
+                });
+
+            if (!updateLastLogout) {
+                return {
+                    status: false,
+                    message: "Gagal Update Waktu Logout",
+                    data: null,
+                }
+            };
+
+            return {
+                status: true,
+                message: "OK",
+                data: updateLastLogout
+            }
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
+    async register(req: Request, payload: AuthenticationModel.IRegisterPayload): Promise<{ result: boolean, message: string, data: any }> {
         try {
             let data = null, isUserExist = null;
 
-            if (payload.is_guru) {
-                data = await this._prismaService.guru.findFirst({
-                    where: {
-                        nama_lengkap: {
-                            contains: payload.nama_lengkap
-                        }
-                    }
-                });
-            };
-
-            if (!payload.is_guru) {
-                data = await this._prismaService.siswa.findFirst({
-                    where: {
-                        nama_lengkap: {
-                            contains: payload.nama_lengkap
-                        }
-                    }
-                });
-            };
-
             isUserExist = await this._prismaService.user.findFirst({
                 where: {
-                    email: payload.email
+                    username: payload.username
                 }
             });
 
             if (isUserExist) {
                 return {
                     result: false,
-                    message: "Email Sudah Terdaftar",
+                    message: "Username Sudah Terdaftar",
                     data: null,
                 }
-            }
+            };
+
+            const salt = await bcrypt.genSalt();
 
             const createUser = await this._prismaService.user.create({
                 data: {
-                    id_guru: payload.is_guru ? data.id_guru : null,
-                    id_siswa: !payload.is_guru ? data.id_siswa : null,
+                    id_user_group: parseInt(payload.id_user_group as any),
+                    username: data.username,
                     email: payload.email,
-                    password: payload.password,
-                    register_at: new Date(),
+                    password: await bcrypt.hash(payload.password, salt),
+                    full_name: payload.full_name,
+                    address: payload.address,
+                    phone: payload.phone,
+                    whatsapp: payload.whatsapp,
+                    notes: payload.notes,
+                    create_at: new Date(),
+                    create_by: parseInt(req['user']['id_user']),
                     is_active: true,
                 }
             });
@@ -170,77 +190,65 @@ export class AuthenticationService {
             };
 
         } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
             throw new HttpException(
                 {
-                    status: HttpStatus.INTERNAL_SERVER_ERROR,
-                    message: error.message,
+                    status: false,
+                    message: error.message
                 },
-                HttpStatus.INTERNAL_SERVER_ERROR,
+                status
             );
         }
     }
 
     async getProfile(req: Request): Promise<any> {
         try {
-
-            let result: any = {};
-
-            const user = await this._prismaService
+            let result = await this._prismaService
                 .user
                 .findUnique({
                     where: {
                         id_user: parseInt(req['user']['id_user'])
+                    },
+                    include: {
+                        user_group: {
+                            select: {
+                                id_user_group: true,
+                                user_group: true
+                            }
+                        }
                     }
                 });
 
-            result.id_user = user.id_user;
-            result.id_guru = user.id_guru;
-            result.id_siswa = user.id_siswa;
-            result.email = user.email;
-            result.password = user.password;
-
-            if (user.id_guru && !user.id_siswa) {
-                const guru = await this._prismaService
-                    .guru
-                    .findUnique({
-                        where: {
-                            id_guru: parseInt(user.id_guru as any)
-                        }
-                    });
-
-                result.nama_lengkap = guru.nama_lengkap;
-                result.nip = guru.nip;
-                result.is_guru = true;
-            }
-
-            if (!user.id_guru && user.id_siswa) {
-                const siswa = await this._prismaService
-                    .siswa
-                    .findUnique({
-                        where: {
-                            id_siswa: parseInt(user.id_siswa as any)
-                        }
-                    });
-
-                result.nama_lengkap = siswa.nama_lengkap;
-                result.no_absen = siswa.no_absen;
-                result.is_guru = false;
-                result.id_kelas = siswa.id_kelas;
-            }
+            const { user_group, ...data } = result;
 
             return {
                 status: true,
                 message: 'OK',
-                data: result
+                data: {
+                    ...data,
+                    id_user_group: user_group.id_user_group,
+                    user_group: user_group.user_group,
+                }
             }
 
         } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
             throw new HttpException(
                 {
-                    status: HttpStatus.INTERNAL_SERVER_ERROR,
-                    message: error.message,
+                    status: false,
+                    message: error.message
                 },
-                HttpStatus.INTERNAL_SERVER_ERROR,
+                status
             );
         }
     }
@@ -252,57 +260,18 @@ export class AuthenticationService {
                 .update({
                     where: { id_user: parseInt(req['user']['id_user'] as any) },
                     data: {
-                        email: payload.email,
-                        password: payload.password,
+                        ...payload,
+                        update_at: new Date(),
+                        update_by: parseInt(req['user']['id_user'] as any)
                     }
                 });
 
             if (!res) {
                 return {
                     status: false,
-                    message: 'Update profile failed',
+                    message: 'Profile Gagal Diperbarui',
                     data: null
                 }
-            }
-
-            if (res.id_guru && !res.id_siswa) {
-                let resGuru = await this._prismaService
-                    .guru
-                    .update({
-                        where: { id_guru: parseInt(res.id_guru as any) },
-                        data: {
-                            nama_lengkap: payload.nama_lengkap,
-                            nip: payload.nip,
-                        }
-                    });
-
-                if (!resGuru) {
-                    return {
-                        status: false,
-                        message: 'Update guru failed',
-                        data: null
-                    }
-                };
-            }
-
-            if (!res.id_guru && res.id_siswa) {
-                let resSiswa = await this._prismaService
-                    .siswa
-                    .update({
-                        where: { id_siswa: parseInt(res.id_siswa as any) },
-                        data: {
-                            nama_lengkap: payload.nama_lengkap,
-                            no_absen: payload.no_absen,
-                        }
-                    });
-
-                if (!resSiswa) {
-                    return {
-                        status: false,
-                        message: 'Update siswa failed',
-                        data: null
-                    }
-                };
             }
 
             return {
@@ -312,12 +281,18 @@ export class AuthenticationService {
             }
 
         } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
             throw new HttpException(
                 {
-                    status: HttpStatus.INTERNAL_SERVER_ERROR,
-                    message: error.message,
+                    status: false,
+                    message: error.message
                 },
-                HttpStatus.INTERNAL_SERVER_ERROR,
+                status
             );
         }
     }

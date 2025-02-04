@@ -1,20 +1,19 @@
 export namespace AuthenticationModel {
-    export class ILogin {
-        email: string;
+    export class ILoginPayload {
+        username: string;
         password: string;
     }
 
     export class ILoginResponse {
         id_user: number;
-        is_guru: boolean;
-        nama_lengkap: string;
-        id_sekolah: number;
-        nama_sekolah: string;
-        id_kelas?: number;
-        nama_kelas?: string;
-        nip?: string;
-        no_absen?: string;
+        id_user_group: number;
+        user_group: string;
+        username: string;
+        full_name: string;
         email: string;
+        phone: string;
+        whatsapp: string;
+        notes: string;
         token: string;
     }
 
@@ -24,23 +23,29 @@ export namespace AuthenticationModel {
         data: ILoginResponse;
     }
 
-    export class IRegister {
-        nama_lengkap: string;
-        email: string;
+    export class IRegisterPayload {
+        id_user_group: number;
+        full_name: string;
+        username: string;
         password: string;
-        is_guru: boolean;
+        email: string;
+        address?: string;
+        phone?: string;
+        whatsapp?: string;
+        notes?: string;
     }
 
     export class IProfile {
-        id_user?: number;
-        id_siswa?: number;
-        id_guru?: number;
-        nama_lengkap: string;
-        nip?: string;
-        id_kelas?: number;
-        no_absen?: string;
+        id_user: number;
+        id_user_group: number;
+        user_group: string;
+        username: string;
+        full_name: string;
         email: string;
         password: string;
+        phone: string;
+        whatsapp: string;
+        notes: string;
     }
 
     export class GetProfile {
@@ -50,10 +55,13 @@ export namespace AuthenticationModel {
     }
 
     export class UpdateProfile {
-        nama_lengkap: string;
-        no_absen?: string;
-        nip?: string;
-        email: string;
+        full_name: string;
+        username: string;
         password: string;
+        email: string;
+        address?: string;
+        phone?: string;
+        whatsapp?: string;
+        notes?: string;
     }
 }

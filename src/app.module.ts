@@ -7,6 +7,8 @@ import { jwtConstants } from './authentication/jwt.secret';
 import { AuthenticationService } from './authentication/authentication.service';
 import { JwtStrategy } from './authentication/jwt.strategy';
 import { UtilityService } from './utility/utility.service';
+import { UserGroupController } from './user-group/user-group.controller';
+import { UserGroupService } from './user-group/user-group.service';
 
 @Module({
     imports: [
@@ -17,12 +19,14 @@ import { UtilityService } from './utility/utility.service';
     ],
     controllers: [
         AuthenticationController,
+        UserGroupController,
     ],
     providers: [
         JwtStrategy,
         PrismaService,
         UtilityService,
         AuthenticationService,
+        UserGroupService,
     ],
 })
 export class AppModule { }

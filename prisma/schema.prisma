@@ -14,30 +14,56 @@ datasource db {
 }
 
 model user {
-    id_user     Int       @id @default(autoincrement())
-    username    String    @unique
-    password    String
-    full_name   String
-    email       String?
-    address     String?
-    phone       String?
-    whatsapp    String?
-    notes       String?
-    is_active   Boolean   @default(true)
-    create_at   DateTime  @default(now())
-    create_by   Int
-    update_at   DateTime?
-    update_by   Int?
-    last_login  DateTime?
-    last_logout DateTime?
-}
-
-model user_group {
-    id_user_group Int       @id @default(autoincrement())
-    user_group    String
-    is_active     Boolean   @default(true)
-    create_at     DateTime  @default(now())
+    id_user       Int        @id @default(autoincrement())
+    user_group    user_group @relation(references: [id_user_group], fields: [id_user_group])
+    id_user_group Int
+    username      String     @unique
+    password      String
+    full_name     String
+    email         String?
+    address       String?
+    phone         String?
+    whatsapp      String?
+    notes         String?
+    is_active     Boolean    @default(true)
+    create_at     DateTime   @default(now())
     create_by     Int
     update_at     DateTime?
     update_by     Int?
+    last_login    DateTime?
+    last_logout   DateTime?
+}
+
+model user_group {
+    id_user_group   Int               @id @default(autoincrement())
+    user_group      String
+    is_active       Boolean           @default(true)
+    create_at       DateTime          @default(now())
+    create_by       Int
+    update_at       DateTime?
+    update_by       Int?
+    user            user[]
+    user_group_menu user_group_menu[]
+}
+
+model menu {
+    id_menu         Int               @id @default(autoincrement())
+    menu            String
+    icon            String
+    url             String
+    id_parent       Int?
+    is_active       Boolean           @default(true)
+    create_at       DateTime          @default(now())
+    create_by       Int
+    update_at       DateTime?
+    update_by       Int?
+    user_group_menu user_group_menu[]
+}
+
+model user_group_menu {
+    id_user_group_menu Int        @id @default(autoincrement())
+    user_group         user_group @relation(references: [id_user_group], fields: [id_user_group])
+    id_user_group      Int
+    menu               menu       @relation(references: [id_menu], fields: [id_menu])
+    id_menu            Int
 }
