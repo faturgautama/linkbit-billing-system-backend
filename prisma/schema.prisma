@@ -67,3 +67,93 @@ model user_group_menu {
     menu               menu       @relation(references: [id_menu], fields: [id_menu])
     id_menu            Int
 }
+
+model setting_company {
+    id_setting_company     Int         @id @default(autoincrement())
+    company_name           String
+    company_email          String
+    company_short_name     String
+    company_address        String
+    company_phone          String
+    company_whatsapp       String
+    compny_email_admin     String
+    company_nomor_rekening String
+    company_bank_name      String
+    tagihan_ppn            Int
+    tagihan_jatuh_tempo    Int
+    tagihan_use_unik_kode  Boolean
+    tagihan_biaya_admin    Float
+    tagihan_pesan_invoice  String
+    tagihan_pesan_lunas    String
+    tagihan_editor_invoice String
+    tagihan_editor_pos     String
+    update_at              DateTime
+    update_by              Int
+    pelanggan              pelanggan[]
+}
+
+model product {
+    id_product               Int                 @id @default(autoincrement())
+    description              String
+    price                    Float
+    invoice_cycle            String
+    days_before_send_invoice Int
+    is_active                Boolean             @default(true)
+    create_at                DateTime            @default(now())
+    create_by                Int
+    update_at                DateTime?
+    update_by                Int?
+    pelanggan_product        pelanggan_product[]
+}
+
+model group_pelanggan {
+    id_group_pelanggan Int         @id @default(autoincrement())
+    group_pelanggan    String
+    is_active          Boolean     @default(true)
+    create_at          DateTime    @default(now())
+    create_by          Int
+    update_at          DateTime?
+    update_by          Int?
+    pelanggan          pelanggan[]
+}
+
+model pelanggan {
+    id_pelanggan         Int                 @id @default(autoincrement())
+    setting_company      setting_company     @relation(fields: [id_setting_company], references: [id_setting_company])
+    id_setting_company   Int
+    group_pelanggan      group_pelanggan     @relation(fields: [id_group_pelanggan], references: [id_group_pelanggan])
+    id_group_pelanggan   Int
+    full_name            String
+    pelanggan_code       String
+    identity_number      String?
+    email                String?
+    password             String?
+    alamat               String?
+    phone                String
+    whatsapp             String?
+    subscribe_start_date DateTime?
+    pic_name             String?
+    notes                String?
+    is_active            Boolean             @default(true)
+    create_at            DateTime            @default(now())
+    create_by            Int
+    update_at            DateTime?
+    update_by            Int?
+    pelanggan_product    pelanggan_product[]
+}
+
+model pelanggan_product {
+    id_pelanggan_product Int       @id @default(autoincrement())
+    pelanggan            pelanggan @relation(fields: [id_pelanggan], references: [id_pelanggan])
+    id_pelanggan         Int
+    product              product   @relation(fields: [id_product], references: [id_product])
+    id_product           Int
+    start_date           DateTime
+    invoice_cycle        String
+    expired_date         DateTime?
+    is_active            Boolean   @default(true)
+    create_at            DateTime  @default(now())
+    create_by            Int
+    update_at            DateTime?
+    update_by            Int?
+}
