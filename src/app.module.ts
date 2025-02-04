@@ -9,6 +9,8 @@ import { JwtStrategy } from './authentication/jwt.strategy';
 import { UtilityService } from './utility/utility.service';
 import { UserGroupController } from './user-group/user-group.controller';
 import { UserGroupService } from './user-group/user-group.service';
+import { UserController } from './user/user.controller';
+import { UserService } from './user/user.service';
 
 @Module({
     imports: [
@@ -19,6 +21,7 @@ import { UserGroupService } from './user-group/user-group.service';
     ],
     controllers: [
         AuthenticationController,
+        UserController,
         UserGroupController,
     ],
     providers: [
@@ -26,6 +29,7 @@ import { UserGroupService } from './user-group/user-group.service';
         PrismaService,
         UtilityService,
         AuthenticationService,
+        UserService,
         UserGroupService,
     ],
 })
