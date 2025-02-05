@@ -1,6 +1,7 @@
 export namespace ProductModel {
     export class IProduct {
         id_product: number;
+        product_name: string;
         description: string;
         price: number;
         invoice_cycle: string;
@@ -30,6 +31,7 @@ export namespace ProductModel {
     }
 
     export class CreateProduct {
+        product_name: string;
         description: string;
         price: number;
         invoice_cycle: string;
@@ -38,6 +40,7 @@ export namespace ProductModel {
 
     export class UpdateProduct {
         id_product: number;
+        product_name: string;
         description: string;
         price: number;
         invoice_cycle: string;

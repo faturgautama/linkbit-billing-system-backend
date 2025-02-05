@@ -17,6 +17,10 @@ import { UserGroupMenuController } from './user-group-menu/user-group-menu.contr
 import { UserGroupMenuService } from './user-group-menu/user-group-menu.service';
 import { SettingCompanyController } from './setting-company/setting-company.controller';
 import { SettingCompanyService } from './setting-company/setting-company.service';
+import { ProductController } from './product/product.controller';
+import { GroupPelangganController } from './group-pelanggan/group-pelanggan.controller';
+import { ProductService } from './product/product.service';
+import { GroupPelangganService } from './group-pelanggan/group-pelanggan.service';
 
 @Module({
     imports: [
@@ -32,6 +36,8 @@ import { SettingCompanyService } from './setting-company/setting-company.service
         MenuController,
         UserGroupMenuController,
         SettingCompanyController,
+        ProductController,
+        GroupPelangganController,
     ],
     providers: [
         JwtStrategy,
@@ -43,6 +49,8 @@ import { SettingCompanyService } from './setting-company/setting-company.service
         MenuService,
         UserGroupMenuService,
         SettingCompanyService,
+        ProductService,
+        GroupPelangganService,
     ],
 })
 export class AppModule { }

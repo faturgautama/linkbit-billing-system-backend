@@ -94,6 +94,7 @@ model setting_company {
 
 model product {
     id_product               Int                 @id @default(autoincrement())
+    product_name             String
     description              String
     price                    Float
     invoice_cycle            String
