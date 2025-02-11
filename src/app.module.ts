@@ -21,6 +21,10 @@ import { ProductController } from './product/product.controller';
 import { GroupPelangganController } from './group-pelanggan/group-pelanggan.controller';
 import { ProductService } from './product/product.service';
 import { GroupPelangganService } from './group-pelanggan/group-pelanggan.service';
+import { PelangganController } from './pelanggan/pelanggan.controller';
+import { InvoiceController } from './invoice/invoice.controller';
+import { PelangganService } from './pelanggan/pelanggan.service';
+import { InvoiceService } from './invoice/invoice.service';
 
 @Module({
     imports: [
@@ -38,6 +42,8 @@ import { GroupPelangganService } from './group-pelanggan/group-pelanggan.service
         SettingCompanyController,
         ProductController,
         GroupPelangganController,
+        PelangganController,
+        InvoiceController,
     ],
     providers: [
         JwtStrategy,
@@ -51,6 +57,8 @@ import { GroupPelangganService } from './group-pelanggan/group-pelanggan.service
         SettingCompanyService,
         ProductService,
         GroupPelangganService,
+        PelangganService,
+        InvoiceService
     ],
 })
 export class AppModule { }
