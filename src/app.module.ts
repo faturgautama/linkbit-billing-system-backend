@@ -25,6 +25,8 @@ import { PelangganController } from './pelanggan/pelanggan.controller';
 import { InvoiceController } from './invoice/invoice.controller';
 import { PelangganService } from './pelanggan/pelanggan.service';
 import { InvoiceService } from './invoice/invoice.service';
+import { PaymentController } from './payment/payment.controller';
+import { PaymentService } from './payment/payment.service';
 
 @Module({
     imports: [
@@ -44,6 +46,7 @@ import { InvoiceService } from './invoice/invoice.service';
         GroupPelangganController,
         PelangganController,
         InvoiceController,
+        PaymentController,
     ],
     providers: [
         JwtStrategy,
@@ -58,7 +61,8 @@ import { InvoiceService } from './invoice/invoice.service';
         ProductService,
         GroupPelangganService,
         PelangganService,
-        InvoiceService
+        InvoiceService,
+        PaymentService,
     ],
 })
 export class AppModule { }

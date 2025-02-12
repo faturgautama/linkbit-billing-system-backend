@@ -88,7 +88,7 @@ export class InvoiceController {
         }
     }
 
-    @Delete(':/id_invoice')
+    @Delete(':id_invoice')
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: InvoiceModel.GetByIdInvoice })

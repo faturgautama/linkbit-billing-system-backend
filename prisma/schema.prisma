@@ -14,24 +14,26 @@ datasource db {
 }
 
 model user {
-    id_user       Int        @id @default(autoincrement())
-    user_group    user_group @relation(references: [id_user_group], fields: [id_user_group])
-    id_user_group Int
-    username      String     @unique
-    password      String
-    full_name     String
-    email         String?
-    address       String?
-    phone         String?
-    whatsapp      String?
-    notes         String?
-    is_active     Boolean    @default(true)
-    create_at     DateTime   @default(now())
-    create_by     Int
-    update_at     DateTime?
-    update_by     Int?
-    last_login    DateTime?
-    last_logout   DateTime?
+    id_user            Int             @id @default(autoincrement())
+    user_group         user_group      @relation(references: [id_user_group], fields: [id_user_group])
+    id_user_group      Int
+    setting_company    setting_company @relation(references: [id_setting_company], fields: [id_setting_company])
+    id_setting_company Int
+    username           String          @unique
+    password           String
+    full_name          String
+    email              String?
+    address            String?
+    phone              String?
+    whatsapp           String?
+    notes              String?
+    is_active          Boolean         @default(true)
+    create_at          DateTime        @default(now())
+    create_by          Int
+    update_at          DateTime?
+    update_by          Int?
+    last_login         DateTime?
+    last_logout        DateTime?
 }
 
 model user_group {
@@ -76,7 +78,7 @@ model setting_company {
     company_address        String
     company_phone          String
     company_whatsapp       String
-    compny_email_admin     String
+    company_email_admin    String
     company_nomor_rekening String
     company_bank_name      String
     tagihan_ppn            Int
@@ -87,9 +89,16 @@ model setting_company {
     tagihan_pesan_lunas    String
     tagihan_editor_invoice String
     tagihan_editor_pos     String
-    update_at              DateTime
-    update_by              Int
+    create_at              DateTime
+    create_by              Int
+    update_at              DateTime?
+    update_by              Int?
+    is_active              Boolean     @default(true)
+    is_mitra               Boolean     @default(false)
+    is_cabang              Boolean     @default(false)
+    api_key_pg             String?
     pelanggan              pelanggan[]
+    user                   user[]
 }
 
 model product {
@@ -202,6 +211,7 @@ model payment {
     id_pelanggan     Int
     product          product   @relation(fields: [id_product], references: [id_product])
     id_product       Int
+    payment_token    String
     payment_id       String
     payment_number   String
     payment_date     DateTime
