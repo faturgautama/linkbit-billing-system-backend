@@ -17,9 +17,9 @@ export class PelangganController {
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: PelangganModel.GetAllPelanggan })
-    async getAll(@Query() query: PelangganModel.IPelangganQueryParams, @Res() res: Response): Promise<any> {
+    async getAll(@Query() query: PelangganModel.IPelangganQueryParams, @Req() req: Request, @Res() res: Response): Promise<any> {
         try {
-            const data = await this._pelangganService.getAll(query);
+            const data = await this._pelangganService.getAll(req, query);
             return res.status(HttpStatus.OK).json(data);
         } catch (error) {
             const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;

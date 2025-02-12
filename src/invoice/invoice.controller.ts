@@ -17,9 +17,9 @@ export class InvoiceController {
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: InvoiceModel.GetAllInvoice })
-    async getAll(@Query() query: InvoiceModel.IInvoiceQueryParams, @Res() res: Response): Promise<any> {
+    async getAll(@Query() query: InvoiceModel.IInvoiceQueryParams, @Req() req: Request, @Res() res: Response): Promise<any> {
         try {
-            const data = await this._invoiceService.getAll(query);
+            const data = await this._invoiceService.getAll(req, query);
             return res.status(HttpStatus.OK).json(data);
         } catch (error) {
             const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;

@@ -2,19 +2,41 @@ import { HttpException, HttpStatus, Injectable, Scope } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { InvoiceModel } from './invoice.model';
 import { Request, Response } from 'express';
+import { SettingCompanyService } from 'src/setting-company/setting-company.service';
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class InvoiceService {
 
     constructor(
         private _prismaService: PrismaService,
+        private _settingCompanyService: SettingCompanyService,
     ) { }
 
-    async getAll(query: InvoiceModel.IInvoiceQueryParams): Promise<InvoiceModel.GetAllInvoice> {
+    async getAll(req: Request, query: InvoiceModel.IInvoiceQueryParams): Promise<InvoiceModel.GetAllInvoice> {
         try {
-            let queries = {
+            let queries: any = {
                 ...query,
                 is_deleted: false
+            };
+
+            const setting_company = await this._settingCompanyService.getById(parseInt(req['user']['id_setting_company']));
+
+            if (setting_company.status) {
+                // ** Queries id_setting_company for main office
+                if (!setting_company.data.is_cabang && !setting_company.data.is_mitra) {
+                    if (query.id_setting_company) {
+                        queries.pelanggan = {
+                            id_setting_company: parseInt(query.id_setting_company)
+                        }
+                    }
+                };
+
+                // ** Queries id_setting_company
+                if (setting_company.data.is_cabang || setting_company.data.is_mitra) {
+                    queries.pelanggan = {
+                        id_setting_company: parseInt(setting_company.data.id_setting_company as any)
+                    }
+                };
             }
 
             let res = await this._prismaService
@@ -32,6 +54,12 @@ export class InvoiceService {
                                 id_pelanggan: true,
                                 full_name: true,
                                 pelanggan_code: true,
+                                setting_company: {
+                                    select: {
+                                        id_setting_company: true,
+                                        company_name: true
+                                    }
+                                }
                             }
                         },
                         product: {
@@ -55,6 +83,8 @@ export class InvoiceService {
                         invoice_number: item.invoice_number,
                         invoice_date: item.invoice_date,
                         id_pelanggan: item.id_pelanggan,
+                        id_setting_company: item.pelanggan.setting_company.id_setting_company,
+                        company_name: item.pelanggan.setting_company.company_name,
                         full_name: item.pelanggan.full_name,
                         pelanggan_code: item.pelanggan.pelanggan_code,
                         id_pelanggan_product: item.id_pelanggan_product,
@@ -110,6 +140,12 @@ export class InvoiceService {
                                 id_pelanggan: true,
                                 full_name: true,
                                 pelanggan_code: true,
+                                setting_company: {
+                                    select: {
+                                        id_setting_company: true,
+                                        company_name: true
+                                    }
+                                }
                             }
                         },
                         product: {
@@ -129,6 +165,8 @@ export class InvoiceService {
                     invoice_number: res.invoice_number,
                     invoice_date: res.invoice_date,
                     id_pelanggan: res.id_pelanggan,
+                    id_setting_company: res.pelanggan.setting_company.id_setting_company,
+                    company_name: res.pelanggan.setting_company.company_name,
                     full_name: res.pelanggan.full_name,
                     pelanggan_code: res.pelanggan.pelanggan_code,
                     id_pelanggan_product: res.id_pelanggan_product,

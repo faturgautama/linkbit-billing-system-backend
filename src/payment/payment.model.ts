@@ -6,6 +6,8 @@ export namespace PaymentModel {
         invoice_date: Date;
         total: number;
         id_pelanggan: number;
+        id_setting_company: number;
+        company_name: string;
         full_name: string;
         pelanggan_code: string;
         id_product: number;
@@ -25,6 +27,7 @@ export namespace PaymentModel {
     }
 
     export class IPaymentQueryParams {
+        id_setting_company?: string;
         id_pelanggan?: string;
         id_product?: string;
         invoice_number?: string;

@@ -4,6 +4,8 @@ export namespace InvoiceModel {
         invoice_number: string;
         invoice_date: Date;
         id_pelanggan: number;
+        id_setting_company: number;
+        company_name: string;
         full_name: string;
         pelanggan_code: string;
         id_pelanggan_product: number;
@@ -29,6 +31,7 @@ export namespace InvoiceModel {
     }
 
     export class IInvoiceQueryParams {
+        id_setting_company?: string;
         id_pelanggan?: string;
         id_product?: string;
         invoice_number?: string;

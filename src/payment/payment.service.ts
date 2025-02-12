@@ -4,6 +4,7 @@ import { PaymentModel } from './payment.model';
 import { InvoiceService } from 'src/invoice/invoice.service';
 import { UtilityService } from 'src/utility/utility.service';
 import { Request } from 'express';
+import { SettingCompanyService } from 'src/setting-company/setting-company.service';
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class PaymentService {
@@ -12,13 +13,34 @@ export class PaymentService {
         private _prismaService: PrismaService,
         private _utilityService: UtilityService,
         private _invoiceService: InvoiceService,
+        private _settingCompanyService: SettingCompanyService,
     ) { }
 
-    async getAll(query: PaymentModel.IPaymentQueryParams): Promise<PaymentModel.GetAllPayment> {
+    async getAll(req: Request, query: PaymentModel.IPaymentQueryParams): Promise<PaymentModel.GetAllPayment> {
         try {
-            let queries = {
+            let queries: any = {
                 ...query,
                 is_deleted: false
+            };
+
+            const setting_company = await this._settingCompanyService.getById(parseInt(req['user']['id_setting_company']));
+
+            if (setting_company.status) {
+                // ** Queries id_setting_company for main office
+                if (!setting_company.data.is_cabang && !setting_company.data.is_mitra) {
+                    if (query.id_setting_company) {
+                        queries.pelanggan = {
+                            id_setting_company: parseInt(query.id_setting_company)
+                        }
+                    }
+                };
+
+                // ** Queries id_setting_company
+                if (setting_company.data.is_cabang || setting_company.data.is_mitra) {
+                    queries.pelanggan = {
+                        id_setting_company: parseInt(setting_company.data.id_setting_company as any)
+                    }
+                };
             }
 
             let res = await this._prismaService
@@ -43,6 +65,12 @@ export class PaymentService {
                                 id_pelanggan: true,
                                 full_name: true,
                                 pelanggan_code: true,
+                                setting_company: {
+                                    select: {
+                                        id_setting_company: true,
+                                        company_name: true
+                                    }
+                                }
                             }
                         },
                         product: {
@@ -68,6 +96,8 @@ export class PaymentService {
                         invoice_date: item.invoice.invoice_date,
                         total: item.invoice.total,
                         id_pelanggan: item.id_pelanggan,
+                        id_setting_company: item.pelanggan.setting_company.id_setting_company,
+                        company_name: item.pelanggan.setting_company.company_name,
                         full_name: item.pelanggan.full_name,
                         pelanggan_code: item.pelanggan.pelanggan_code,
                         id_product: item.id_product,
@@ -124,6 +154,12 @@ export class PaymentService {
                                 id_pelanggan: true,
                                 full_name: true,
                                 pelanggan_code: true,
+                                setting_company: {
+                                    select: {
+                                        id_setting_company: true,
+                                        company_name: true
+                                    }
+                                }
                             }
                         },
                         product: {
@@ -145,6 +181,8 @@ export class PaymentService {
                     invoice_date: res.invoice.invoice_date,
                     total: res.invoice.total,
                     id_pelanggan: res.id_pelanggan,
+                    id_setting_company: res.pelanggan.setting_company.id_setting_company,
+                    company_name: res.pelanggan.setting_company.company_name,
                     full_name: res.pelanggan.full_name,
                     pelanggan_code: res.pelanggan.pelanggan_code,
                     id_product: res.id_product,
@@ -189,6 +227,14 @@ export class PaymentService {
                 return {
                     status: false,
                     message: 'Invoice Tidak Ditemukan',
+                    data: null
+                }
+            }
+
+            if (invoice.status && invoice.data.invoice_status == 'PAID') {
+                return {
+                    status: false,
+                    message: 'Invoice Telah Terbayar',
                     data: null
                 }
             }

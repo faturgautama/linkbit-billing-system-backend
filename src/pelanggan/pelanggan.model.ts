@@ -23,6 +23,7 @@ export namespace PelangganModel {
     }
 
     export class IPelangganQueryParams {
+        id_setting_company?: string;
         id_group_pelanggan?: number;
         full_name?: string;
         pelanggan_code?: string;
@@ -43,6 +44,7 @@ export namespace PelangganModel {
 
     export class CreatePelanggan {
         id_group_pelanggan: number;
+        id_setting_company: number;
         full_name: string;
         pelanggan_code: string;
         identity_number: string;
@@ -58,6 +60,7 @@ export namespace PelangganModel {
 
     export class UpdatePelanggan {
         id_pelanggan: number;
+        id_setting_company: number;
         id_group_pelanggan: number;
         full_name: string;
         pelanggan_code: string;
