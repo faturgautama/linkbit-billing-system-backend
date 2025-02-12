@@ -6,6 +6,8 @@ export namespace AuthenticationModel {
 
     export class ILoginResponse {
         id_user: number;
+        id_setting_company: number;
+        company_name: string;
         id_user_group: number;
         user_group: string;
         username: string;
@@ -24,6 +26,7 @@ export namespace AuthenticationModel {
     }
 
     export class IRegisterPayload {
+        id_setting_company: number;
         id_user_group: number;
         full_name: string;
         username: string;
@@ -37,6 +40,8 @@ export namespace AuthenticationModel {
 
     export class IProfile {
         id_user: number;
+        id_setting_company: number;
+        company_name: string;
         id_user_group: number;
         user_group: string;
         username: string;

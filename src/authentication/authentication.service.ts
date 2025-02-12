@@ -25,6 +25,11 @@ export class AuthenticationService {
                         select: {
                             user_group: true
                         }
+                    },
+                    setting_company: {
+                        select: {
+                            company_name: true
+                        }
                     }
                 }
             });
@@ -71,6 +76,7 @@ export class AuthenticationService {
 
             token = this._jwtService.sign({
                 id_user: user.id_user,
+                id_setting_company: user.id_setting_company,
                 id_user_group: user.id_user_group,
                 username: user.username,
                 full_name: user.full_name,
@@ -85,6 +91,8 @@ export class AuthenticationService {
                 message: "OK",
                 data: {
                     id_user: user.id_user,
+                    id_setting_company: user.id_setting_company,
+                    company_name: user.setting_company.company_name,
                     id_user_group: user.id_user_group,
                     user_group: user.user_group.user_group,
                     username: user.username,
@@ -181,6 +189,7 @@ export class AuthenticationService {
 
             const createUser = await this._prismaService.user.create({
                 data: {
+                    id_setting_company: parseInt(payload.id_setting_company as any),
                     id_user_group: parseInt(payload.id_user_group as any),
                     username: payload.username,
                     email: payload.email,
@@ -235,11 +244,16 @@ export class AuthenticationService {
                                 id_user_group: true,
                                 user_group: true
                             }
+                        },
+                        setting_company: {
+                            select: {
+                                company_name: true,
+                            }
                         }
                     }
                 });
 
-            const { user_group, ...data } = result;
+            const { user_group, setting_company, ...data } = result;
 
             return {
                 status: true,
@@ -248,6 +262,8 @@ export class AuthenticationService {
                     ...data,
                     id_user_group: user_group.id_user_group,
                     user_group: user_group.user_group,
+                    id_setting_company: data.id_setting_company,
+                    company_name: setting_company.company_name
                 }
             }
 

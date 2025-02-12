@@ -17,9 +17,9 @@ export class UserController {
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: UserModel.GetAllUser })
-    async getAll(@Query() query: UserModel.IUserQueryParams, @Res() res: Response): Promise<any> {
+    async getAll(@Query() query: UserModel.IUserQueryParams, @Req() req: Request, @Res() res: Response): Promise<any> {
         try {
-            const data = await this._userService.getAll(query);
+            const data = await this._userService.getAll(req, query);
             return res.status(HttpStatus.OK).json(data);
         } catch (error) {
             const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;

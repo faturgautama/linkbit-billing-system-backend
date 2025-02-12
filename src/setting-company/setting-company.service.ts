@@ -10,50 +10,18 @@ export class SettingCompanyService {
         private _prismaService: PrismaService,
     ) { }
 
-    // async getAll(query: SettingCompanyModel.ISettingCompanyQueryParams): Promise<SettingCompanyModel.GetAllSettingCompany> {
-    //     try {
-    //         let res: any[] = await this._prismaService
-    //             .setting_company
-    //             .findMany({
-    //                 where: Object.keys(query).reduce((aggregate, property) => {
-    //                     if (property == 'id_kelas') {
-    //                         aggregate[property] = parseInt(query[property] as any);
-    //                     }
-    //                     return aggregate;
-    //                 }, {}),
-    //                 orderBy: {
-    //                     id_setting_company: 'asc'
-    //                 }
-    //             });
-
-    //         return {
-    //             status: true,
-    //             message: '',
-    //             data: res
-    //         }
-
-    //     } catch (error) {
-    //         const status = error.message.includes('not found')
-    //             ? HttpStatus.NOT_FOUND
-    //             : error.message.includes('bad request')
-    //                 ? HttpStatus.BAD_REQUEST
-    //                 : HttpStatus.INTERNAL_SERVER_ERROR;
-
-    //         throw new HttpException(
-    //             {
-    //                 status: false,
-    //                 message: error.message
-    //             },
-    //             status
-    //         );
-    //     }
-    // }
-
-    async getById(): Promise<SettingCompanyModel.GetByIdSettingCompany> {
+    async getAll(): Promise<SettingCompanyModel.GetAllSettingCompany> {
         try {
-            let res: any = await this._prismaService
+            let res: any[] = await this._prismaService
                 .setting_company
-                .findFirst();
+                .findMany({
+                    where: {
+                        is_active: true
+                    },
+                    orderBy: {
+                        id_setting_company: 'asc'
+                    }
+                });
 
             return {
                 status: true,
@@ -78,40 +46,75 @@ export class SettingCompanyService {
         }
     }
 
-    // async create(req: Request, payload: SettingCompanyModel.CreateSettingCompany): Promise<any> {
-    //     try {
-    //         let res = await this._prismaService
-    //             .setting_company
-    //             .create({
-    //                 data: {
-    //                     ...payload,
-    //                     create_at: new Date(),
-    //                     create_by: parseInt(req['user']['id_user'] as any)
-    //                 }
-    //             })
+    async getById(id_setting_company: number): Promise<SettingCompanyModel.GetByIdSettingCompany> {
+        try {
+            let res: any = await this._prismaService
+                .setting_company
+                .findUnique({
+                    where: {
+                        id_setting_company: parseInt(id_setting_company as any)
+                    }
+                });
 
-    //         return {
-    //             status: true,
-    //             message: '',
-    //             data: res
-    //         }
+            return {
+                status: true,
+                message: '',
+                data: res
+            }
 
-    //     } catch (error) {
-    //         const status = error.message.includes('not found')
-    //             ? HttpStatus.NOT_FOUND
-    //             : error.message.includes('bad request')
-    //                 ? HttpStatus.BAD_REQUEST
-    //                 : HttpStatus.INTERNAL_SERVER_ERROR;
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    //         throw new HttpException(
-    //             {
-    //                 status: false,
-    //                 message: error.message
-    //             },
-    //             status
-    //         );
-    //     }
-    // }
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
+    async create(req: Request, payload: SettingCompanyModel.CreateSettingCompany): Promise<any> {
+        try {
+            let res = await this._prismaService
+                .setting_company
+                .create({
+                    data: {
+                        ...payload,
+                        create_at: new Date(),
+                        create_by: parseInt(req['user']['id_user'] as any),
+                        is_active: true,
+
+                    }
+                })
+
+            return {
+                status: true,
+                message: '',
+                data: res
+            }
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
 
     async update(req: Request, payload: SettingCompanyModel.UpdateSettingCompany): Promise<any> {
         try {
