@@ -5,14 +5,19 @@ import { InvoiceService } from 'src/invoice/invoice.service';
 import { UtilityService } from 'src/utility/utility.service';
 import { Request } from 'express';
 import { SettingCompanyService } from 'src/setting-company/setting-company.service';
+import { AxiosService } from 'src/utility/axios.service';
+import { firstValueFrom, map } from 'rxjs';
+import { ImageHelperService } from 'src/utility/image-helper.service';
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class PaymentService {
 
     constructor(
+        private _axiosService: AxiosService,
         private _prismaService: PrismaService,
         private _utilityService: UtilityService,
         private _invoiceService: InvoiceService,
+        private _imageHelperService: ImageHelperService,
         private _settingCompanyService: SettingCompanyService,
     ) { }
 
@@ -299,7 +304,82 @@ export class PaymentService {
         }
     }
 
-    async create(req: Request, payload: PaymentModel.CreatePayment): Promise<any> {
+    // ** Get Payment Method
+    async getPaymentMethod(data: PaymentModel.GetAllPaymentMethod): Promise<PaymentModel.GetAllPayment> {
+        try {
+            const decryptedData = this._utilityService.onDecrypt(data.token);
+
+            if (!decryptedData) {
+                return {
+                    status: false,
+                    message: 'Token Is Invalid',
+                    data: null
+                }
+            }
+
+            const params = {
+                method: 'get',
+                url: `${process.env.XENDIT_URL}/available_virtual_account_banks`,
+                headers: {
+                    'Authorization': `Basic ${Buffer.from(`${process.env.XENDIT_KEY}:`).toString('base64')}`
+                },
+            };
+
+            return await firstValueFrom(
+                this._axiosService
+                    .onAxiosRequest(params)
+                    .pipe(
+                        map((result) => {
+                            result.data = result.data.filter((item: any) => {
+                                if (item.country == 'ID' && item.currency == 'IDR' && item.is_activated && item.code.toLowerCase() != 'sahabat_sampoerna') {
+                                    return item;
+                                }
+                            });
+
+                            let newData = result.data.map((item: any) => {
+                                return {
+                                    payment_method_name: item.name,
+                                    payment_method_code: item.code,
+                                    image: this._imageHelperService.getBase64Image(item.code.toLowerCase() + '.png')
+                                }
+                            });
+
+                            newData.push({
+                                payment_method_name: 'QRIS',
+                                payment_method_code: 'QRIS',
+                                image: this._imageHelperService.getBase64Image('qris.png')
+                            })
+
+                            return {
+                                ...result,
+                                data: newData
+                            };
+                        })
+                    )
+            );
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
+    // ** Create Checkout -> HIT Create QR / Create VA Bank, if success save to DB using payment function
+
+    // ** Change payment method => Update VA, conditionally by payment method
+
+    async payment(req: Request, payload: PaymentModel.CreatePayment): Promise<any> {
         try {
             let res = await this._prismaService
                 .payment
@@ -335,7 +415,7 @@ export class PaymentService {
         }
     }
 
-    async update(req: Request, payload: PaymentModel.UpdatePayment): Promise<any> {
+    async edit_payment(req: Request, payload: PaymentModel.UpdatePayment): Promise<any> {
         try {
             const { id_payment, ...data } = payload;
 

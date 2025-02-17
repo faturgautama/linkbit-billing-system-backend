@@ -17,9 +17,9 @@ export class PaymentController {
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetAllPayment })
-    async getAll(@Query() query: PaymentModel.IPaymentQueryParams, @Res() res: Response): Promise<any> {
+    async getAll(@Query() query: PaymentModel.IPaymentQueryParams, @Req() req: Request, @Res() res: Response): Promise<any> {
         try {
-            const data = await this._paymentService.getAll(query);
+            const data = await this._paymentService.getAll(req, query);
             return res.status(HttpStatus.OK).json(data);
         } catch (error) {
             const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
@@ -38,44 +38,6 @@ export class PaymentController {
     async getById(@Param('id_payment') id_payment: number, @Res() res: Response): Promise<any> {
         try {
             const data = await this._paymentService.getById(id_payment);
-            return res.status(HttpStatus.OK).json(data);
-
-        } catch (error) {
-            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
-            return res.status(status).json({
-                status: false,
-                message: error.message,
-                data: null,
-            });
-        }
-    }
-
-    @Post()
-    @UseGuards(JwtGuard)
-    @ApiBearerAuth('token')
-    @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetByIdPayment })
-    async create(@Body() body: PaymentModel.CreatePayment, @Req() req: Request, @Res() res: Response): Promise<any> {
-        try {
-            const data = await this._paymentService.create(req, body);
-            return res.status(HttpStatus.OK).json(data);
-
-        } catch (error) {
-            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
-            return res.status(status).json({
-                status: false,
-                message: error.message,
-                data: null,
-            });
-        }
-    }
-
-    @Put()
-    @UseGuards(JwtGuard)
-    @ApiBearerAuth('token')
-    @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetByIdPayment })
-    async update(@Body() body: PaymentModel.UpdatePayment, @Req() req: Request, @Res() res: Response): Promise<any> {
-        try {
-            const data = await this._paymentService.update(req, body);
             return res.status(HttpStatus.OK).json(data);
 
         } catch (error) {
@@ -107,8 +69,6 @@ export class PaymentController {
     }
 
     @Get('get-from-token/:token')
-    @UseGuards(JwtGuard)
-    @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetAllPayment })
     async getFromToken(@Param('token') token: string, @Res() res: Response): Promise<any> {
         try {
@@ -123,4 +83,59 @@ export class PaymentController {
             });
         }
     }
+
+    @Post('get-all-payment-method')
+    @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetAllPayment })
+    async getAllPaymentMethod(@Body() body: PaymentModel.GetAllPaymentMethod, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._paymentService.getPaymentMethod(body);
+            return res.status(HttpStatus.OK).json(data);
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
+
+    @Post('payment')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetByIdPayment })
+    async payment(@Body() body: PaymentModel.CreatePayment, @Req() req: Request, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._paymentService.payment(req, body);
+            return res.status(HttpStatus.OK).json(data);
+
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
+
+    @Put('edit-payment')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetByIdPayment })
+    async editPayment(@Body() body: PaymentModel.UpdatePayment, @Req() req: Request, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._paymentService.edit_payment(req, body);
+            return res.status(HttpStatus.OK).json(data);
+
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
+
 }

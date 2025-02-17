@@ -72,4 +72,8 @@ export namespace PaymentModel {
         payment_status: string;
         payment_amount: number;
     }
+
+    export class GetAllPaymentMethod {
+        token: string;
+    }
 }

@@ -27,13 +27,17 @@ import { PelangganService } from './pelanggan/pelanggan.service';
 import { InvoiceService } from './invoice/invoice.service';
 import { PaymentController } from './payment/payment.controller';
 import { PaymentService } from './payment/payment.service';
+import { AxiosService } from './utility/axios.service';
+import { HttpModule, HttpService } from '@nestjs/axios';
+import { ImageHelperService } from './utility/image-helper.service';
 
 @Module({
     imports: [
         PassportModule,
         JwtModule.register({
             secret: jwtConstants.secret
-        })
+        }),
+        HttpModule,
     ],
     controllers: [
         AuthenticationController,
@@ -63,6 +67,8 @@ import { PaymentService } from './payment/payment.service';
         PelangganService,
         InvoiceService,
         PaymentService,
+        AxiosService,
+        ImageHelperService
     ],
 })
 export class AppModule { }

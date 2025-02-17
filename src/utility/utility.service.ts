@@ -4,8 +4,8 @@ import * as crypto from 'crypto';
 @Injectable()
 export class UtilityService {
 
-    secretKey = crypto.randomBytes(32);
-    iv = crypto.randomBytes(16);
+    secretKey = Buffer.from('0123456789abcdef0123456789abcdef', 'utf-8');
+    iv = Buffer.from('abcdef0123456789', 'utf-8'); // 16 bytes
 
     convertFiltersToQuery(filters: any[], withoutWhere?: boolean): string {
         const duplicateFilters = filters.map((item) => {
