@@ -8,8 +8,8 @@ export class AppGateway {
 
     @WebSocketServer() server: Server
 
-    @SubscribeMessage('payment-notification')
+    @SubscribeMessage('payment_status')
     sendPaymentNotification(@MessageBody() token: string): void {
-        this.server.emit('payment-notification', token);
+        this.server.emit('get_payment_status_now', token);
     }
 }
