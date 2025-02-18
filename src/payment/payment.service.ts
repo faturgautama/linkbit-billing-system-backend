@@ -416,7 +416,6 @@ export class PaymentService {
     // ** Change payment method => Update VA, conditionally by payment method
 
     // ** Create Checkout -> HIT Create QR / Create VA Bank, if success save to DB using payment function
-
     async payment(payload: PaymentModel.CreatePayment): Promise<any> {
         try {
             const decryptedData = this._utilityService.onDecrypt(payload.payment_token);
@@ -480,7 +479,8 @@ export class PaymentService {
                     currency: 'IDR',
                     is_single_use: true,
                     is_closed: true,
-                    expected_amount: payload.payment_amount
+                    expected_amount: payload.payment_amount,
+                    callback_url: process.env.XENDIT_CALLBACK_URL
                 }
             };
 
@@ -492,17 +492,17 @@ export class PaymentService {
                     'Content-Type': 'application/json'
                 },
                 data: {
+                    external_id: `${dataFromToken.invoice_number}_${new Date().getTime()}`,
                     reference_id: dataFromToken.invoice_number,
                     type: 'DYNAMIC',
                     currency: 'IDR',
                     amount: payload.payment_amount,
+                    callback_url: process.env.XENDIT_CALLBACK_URL
                 }
             };
 
-            const xenditPaymentResult = await firstValueFrom(
-                this._axiosService
-                    .onAxiosRequest(payload.payment_method_type == 'QRIS' ? createQrCodesParams : createVirtualAccountParams)
-            );
+            let payloadXendit = payload.payment_method_code == 'QRIS' ? createQrCodesParams : createVirtualAccountParams;
+            const xenditPaymentResult = await firstValueFrom(this._axiosService.onAxiosRequest(payloadXendit));
 
             if (!xenditPaymentResult.status) {
                 return {
@@ -521,7 +521,7 @@ export class PaymentService {
                         id_product: dataFromToken.id_product,
                         payment_token: payload.payment_token,
                         payment_id: xenditPaymentResult.data.id,
-                        payment_number: dataFromToken.invoice_number,
+                        payment_number: payload.payment_method_code == 'QRIS' ? xenditPaymentResult.data.qr_string : xenditPaymentResult.data.account_number,
                         payment_date: new Date(),
                         payment_status: xenditPaymentResult.data.status,
                         payment_method: payload.payment_method_code,
@@ -539,8 +539,6 @@ export class PaymentService {
             }
 
         } catch (error) {
-            console.log("error =>", error);
-
             const status = error.message.includes('not found')
                 ? HttpStatus.NOT_FOUND
                 : error.message.includes('bad request')
@@ -557,7 +555,140 @@ export class PaymentService {
         }
     }
 
-    async edit_payment(req: Request, payload: PaymentModel.UpdatePayment): Promise<any> {
+    async simulate(id_payment: number): Promise<any> {
+        try {
+            const payment = await this._prismaService
+                .payment
+                .findUnique({
+                    where: {
+                        id_payment: parseInt(id_payment as any)
+                    },
+                    select: {
+                        id_pelanggan: true,
+                        payment_id: true,
+                        payment_amount: true,
+                        payment_method: true,
+                    }
+                });
+
+            const pelanggan = await this._prismaService
+                .pelanggan
+                .findUnique({
+                    where: {
+                        id_pelanggan: payment.id_pelanggan
+                    },
+                    select: {
+                        id_setting_company: true
+                    }
+                });
+
+            if (!pelanggan) {
+                return {
+                    status: false,
+                    message: 'Pelanggan Not Found',
+                    data: null
+                }
+            };
+
+            const settingCompany = await this._prismaService
+                .setting_company
+                .findUnique({
+                    where: {
+                        id_setting_company: pelanggan.id_setting_company
+                    }
+                });
+
+            if (!settingCompany) {
+                return {
+                    status: false,
+                    message: 'Setting Company Not Found',
+                    data: null
+                }
+            };
+
+            const simulatePaymentVirtualAccountParams = {
+                method: 'post',
+                url: `${process.env.XENDIT_URL}/callback_virtual_accounts/external_id=${payment.payment_id}/simulate_payment`,
+                headers: {
+                    'Authorization': `Basic ${Buffer.from(`${settingCompany.api_key_pg}:`).toString('base64')}`
+                },
+                data: {
+                    amount: payment.payment_amount,
+                }
+            };
+
+            const simulateQrCodesParams = {
+                method: 'post',
+                url: `${process.env.XENDIT_URL}/qr_codes/${payment.payment_id}/payments/simulate`,
+                headers: {
+                    'Authorization': `Basic ${Buffer.from(`${settingCompany.api_key_pg}:`).toString('base64')}`,
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                    amount: payment.payment_amount
+                }
+            };
+
+            let payloadXendit = payment.payment_method == 'QRIS' ? simulateQrCodesParams : simulatePaymentVirtualAccountParams;
+            const xenditPaymentResult = await firstValueFrom(this._axiosService.onAxiosRequest(payloadXendit));
+
+            if (!xenditPaymentResult.status) {
+                return {
+                    status: false,
+                    message: 'Simulate Failed, Try Again',
+                    data: null
+                }
+            }
+
+            return {
+                status: true,
+                message: 'Simulate Success, Waiting Callback',
+                data: id_payment
+            }
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
+    async paymentCallback(payload: any): Promise<any> {
+        try {
+            return {
+                status: true,
+                message: 'Callback Success',
+                data: payload
+            }
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
+    async editPayment(req: Request, payload: PaymentModel.UpdatePayment): Promise<any> {
         try {
             const { id_payment, ...data } = payload;
 

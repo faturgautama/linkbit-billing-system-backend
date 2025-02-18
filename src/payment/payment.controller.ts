@@ -117,13 +117,47 @@ export class PaymentController {
         }
     }
 
+    @Get('simulate-payment/:id_payment')
+    @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetByIdPayment })
+    async simulatePayment(@Param('id_payment') id_payment: number, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._paymentService.simulate(id_payment);
+            return res.status(HttpStatus.OK).json(data);
+
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
+
+    @Post('callback')
+    @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetByIdPayment })
+    async callbackPayment(@Body() payload: any, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._paymentService.paymentCallback(payload);
+            return res.status(HttpStatus.OK).json(data);
+
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
+
     @Put('edit-payment')
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetByIdPayment })
     async editPayment(@Body() body: PaymentModel.UpdatePayment, @Req() req: Request, @Res() res: Response): Promise<any> {
         try {
-            const data = await this._paymentService.edit_payment(req, body);
+            const data = await this._paymentService.editPayment(req, body);
             return res.status(HttpStatus.OK).json(data);
 
         } catch (error) {

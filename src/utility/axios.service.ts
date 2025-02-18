@@ -34,6 +34,7 @@ export class AxiosService {
             }),
             catchError((error: AxiosError) => {
                 console.log("======================================================");
+                console.log("http request url =>", axiosConfig.url);
                 console.log("http request error =>", error.response.data);
                 console.log("======================================================");
                 throw error;
