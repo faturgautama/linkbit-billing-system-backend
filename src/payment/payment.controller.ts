@@ -69,7 +69,7 @@ export class PaymentController {
     }
 
     @Get('get-from-token/:token')
-    @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetAllPayment })
+    @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetByIdPayment })
     async getFromToken(@Param('token') token: string, @Res() res: Response): Promise<any> {
         try {
             const data = await this._paymentService.getDataFromTokenCheckout(token);
@@ -84,11 +84,11 @@ export class PaymentController {
         }
     }
 
-    @Post('get-all-payment-method')
-    @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetAllPayment })
-    async getAllPaymentMethod(@Body() body: PaymentModel.GetAllPaymentMethod, @Res() res: Response): Promise<any> {
+    @Get('get-all-payment-method/:token')
+    @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetAllPaymentMethod })
+    async getAllPaymentMethod(@Param('token') token: string, @Res() res: Response): Promise<any> {
         try {
-            const data = await this._paymentService.getPaymentMethod(body);
+            const data = await this._paymentService.getPaymentMethod(token);
             return res.status(HttpStatus.OK).json(data);
         } catch (error) {
             const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
@@ -100,13 +100,11 @@ export class PaymentController {
         }
     }
 
-    @Post('payment')
-    @UseGuards(JwtGuard)
-    @ApiBearerAuth('token')
+    @Post('create-payment')
     @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetByIdPayment })
-    async payment(@Body() body: PaymentModel.CreatePayment, @Req() req: Request, @Res() res: Response): Promise<any> {
+    async payment(@Body() body: PaymentModel.CreatePayment, @Res() res: Response): Promise<any> {
         try {
-            const data = await this._paymentService.payment(req, body);
+            const data = await this._paymentService.payment(body);
             return res.status(HttpStatus.OK).json(data);
 
         } catch (error) {

@@ -305,9 +305,9 @@ export class PaymentService {
     }
 
     // ** Get Payment Method
-    async getPaymentMethod(data: PaymentModel.GetAllPaymentMethod): Promise<PaymentModel.GetAllPayment> {
+    async getPaymentMethod(token: string): Promise<PaymentModel.GetAllPayment> {
         try {
-            const decryptedData = this._utilityService.onDecrypt(data.token);
+            const decryptedData = this._utilityService.onDecrypt(token);
 
             if (!decryptedData) {
                 return {
@@ -315,13 +315,48 @@ export class PaymentService {
                     message: 'Token Is Invalid',
                     data: null
                 }
-            }
+            };
+
+            const pelanggan = await this._prismaService
+                .pelanggan
+                .findUnique({
+                    where: {
+                        id_pelanggan: JSON.parse(decryptedData).id_pelanggan
+                    },
+                    select: {
+                        id_setting_company: true
+                    }
+                });
+
+            if (!pelanggan) {
+                return {
+                    status: false,
+                    message: 'Pelanggan Not Found',
+                    data: null
+                }
+            };
+
+            const settingCompany = await this._prismaService
+                .setting_company
+                .findUnique({
+                    where: {
+                        id_setting_company: pelanggan.id_setting_company
+                    }
+                });
+
+            if (!settingCompany) {
+                return {
+                    status: false,
+                    message: 'Setting Company Not Found',
+                    data: null
+                }
+            };
 
             const params = {
                 method: 'get',
                 url: `${process.env.XENDIT_URL}/available_virtual_account_banks`,
                 headers: {
-                    'Authorization': `Basic ${Buffer.from(`${process.env.XENDIT_KEY}:`).toString('base64')}`
+                    'Authorization': `Basic ${Buffer.from(`${settingCompany.api_key_pg}:`).toString('base64')}`
                 },
             };
 
@@ -336,19 +371,22 @@ export class PaymentService {
                                 }
                             });
 
-                            let newData = result.data.map((item: any) => {
-                                return {
-                                    payment_method_name: item.name,
-                                    payment_method_code: item.code,
-                                    image: this._imageHelperService.getBase64Image(item.code.toLowerCase() + '.png')
-                                }
-                            });
-
-                            newData.push({
-                                payment_method_name: 'QRIS',
-                                payment_method_code: 'QRIS',
-                                image: this._imageHelperService.getBase64Image('qris.png')
-                            })
+                            let newData = [
+                                {
+                                    payment_method_type: 'QRIS',
+                                    payment_method_name: 'QRIS',
+                                    payment_method_code: 'QRIS',
+                                    image: this._imageHelperService.getBase64Image('qris.png')
+                                },
+                                ...result.data.map((item: any) => {
+                                    return {
+                                        payment_method_type: 'Virtual Account',
+                                        payment_method_name: item.name,
+                                        payment_method_code: item.code,
+                                        image: this._imageHelperService.getBase64Image(item.code.toLowerCase() + '.png')
+                                    }
+                                })
+                            ];
 
                             return {
                                 ...result,
@@ -375,30 +413,134 @@ export class PaymentService {
         }
     }
 
-    // ** Create Checkout -> HIT Create QR / Create VA Bank, if success save to DB using payment function
-
     // ** Change payment method => Update VA, conditionally by payment method
 
-    async payment(req: Request, payload: PaymentModel.CreatePayment): Promise<any> {
+    // ** Create Checkout -> HIT Create QR / Create VA Bank, if success save to DB using payment function
+
+    async payment(payload: PaymentModel.CreatePayment): Promise<any> {
         try {
+            const decryptedData = this._utilityService.onDecrypt(payload.payment_token);
+
+            if (!decryptedData) {
+                return {
+                    status: false,
+                    message: 'Token Is Invalid',
+                    data: null
+                }
+            };
+
+            const dataFromToken = JSON.parse(decryptedData)
+
+            const pelanggan = await this._prismaService
+                .pelanggan
+                .findUnique({
+                    where: {
+                        id_pelanggan: JSON.parse(decryptedData).id_pelanggan
+                    },
+                    select: {
+                        id_setting_company: true
+                    }
+                });
+
+            if (!pelanggan) {
+                return {
+                    status: false,
+                    message: 'Pelanggan Not Found',
+                    data: null
+                }
+            };
+
+            const settingCompany = await this._prismaService
+                .setting_company
+                .findUnique({
+                    where: {
+                        id_setting_company: pelanggan.id_setting_company
+                    }
+                });
+
+            if (!settingCompany) {
+                return {
+                    status: false,
+                    message: 'Setting Company Not Found',
+                    data: null
+                }
+            };
+
+            const createVirtualAccountParams = {
+                method: 'post',
+                url: `${process.env.XENDIT_URL}/callback_virtual_accounts`,
+                headers: {
+                    'Authorization': `Basic ${Buffer.from(`${settingCompany.api_key_pg}:`).toString('base64')}`
+                },
+                data: {
+                    external_id: `va_${dataFromToken.invoice_number}`,
+                    bank_code: payload.payment_method_code,
+                    name: dataFromToken.full_name,
+                    country: 'ID',
+                    currency: 'IDR',
+                    is_single_use: true,
+                    is_closed: true,
+                    expected_amount: payload.payment_amount
+                }
+            };
+
+            const createQrCodesParams = {
+                method: 'post',
+                url: `${process.env.XENDIT_URL}/qr_codes`,
+                headers: {
+                    'Authorization': `Basic ${Buffer.from(`${settingCompany.api_key_pg}:`).toString('base64')}`,
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                    reference_id: dataFromToken.invoice_number,
+                    type: 'DYNAMIC',
+                    currency: 'IDR',
+                    amount: payload.payment_amount,
+                }
+            };
+
+            const xenditPaymentResult = await firstValueFrom(
+                this._axiosService
+                    .onAxiosRequest(payload.payment_method_type == 'QRIS' ? createQrCodesParams : createVirtualAccountParams)
+            );
+
+            if (!xenditPaymentResult.status) {
+                return {
+                    status: false,
+                    message: 'Checkout Failed, Try Again',
+                    data: null
+                }
+            }
+
             let res = await this._prismaService
                 .payment
                 .create({
                     data: {
-                        ...payload,
+                        id_invoice: dataFromToken.id_invoice,
+                        id_pelanggan: dataFromToken.id_pelanggan,
+                        id_product: dataFromToken.id_product,
+                        payment_token: payload.payment_token,
+                        payment_id: xenditPaymentResult.data.id,
+                        payment_number: dataFromToken.invoice_number,
+                        payment_date: new Date(),
+                        payment_status: xenditPaymentResult.data.status,
+                        payment_method: payload.payment_method_code,
+                        payment_amount: payload.payment_amount,
                         payment_provider: 'XENDIT',
                         create_at: new Date(),
-                        create_by: payload.id_pelanggan
+                        create_by: dataFromToken.id_pelanggan
                     }
                 })
 
             return {
                 status: true,
-                message: '',
+                message: 'Checkout Success, Waiting Your Payment',
                 data: res
             }
 
         } catch (error) {
+            console.log("error =>", error);
+
             const status = error.message.includes('not found')
                 ? HttpStatus.NOT_FOUND
                 : error.message.includes('bad request')

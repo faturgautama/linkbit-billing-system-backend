@@ -47,15 +47,9 @@ export namespace PaymentModel {
     }
 
     export class CreatePayment {
-        id_invoice: number;
-        id_pelanggan: number;
-        id_product: number;
         payment_token: string;
-        payment_id: string;
-        payment_number: string;
-        payment_date: Date;
-        payment_method: string;
-        payment_status: string;
+        payment_method_type: string;
+        payment_method_code: string;
         payment_amount: number;
     }
 
@@ -67,13 +61,21 @@ export namespace PaymentModel {
         payment_token: string;
         payment_id: string;
         payment_number: string;
-        payment_date: Date;
-        payment_method: string;
-        payment_status: string;
+        payment_method_type: string;
+        payment_method_code: string;
         payment_amount: number;
     }
 
+    export class IPaymentMethod {
+        payment_method_type: string;
+        payment_method_name: string;
+        payment_method_code: string;
+        image: string;
+    }
+
     export class GetAllPaymentMethod {
-        token: string;
+        status: boolean;
+        message: string;
+        data: IPaymentMethod[];
     }
 }

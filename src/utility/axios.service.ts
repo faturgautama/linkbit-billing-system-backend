@@ -2,11 +2,15 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable, Scope } from '@nestjs/common';
 import { AxiosError } from 'axios';
 import { catchError, map, Observable } from 'rxjs';
+import { PrismaService } from 'src/prisma.service';
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class AxiosService {
 
-    constructor(private readonly _httpService: HttpService) { }
+    constructor(
+        private readonly _httpService: HttpService,
+        private readonly _prismaService: PrismaService,
+    ) { }
 
     onAxiosRequest(params: any): Observable<any> {
         const axiosConfig: any = {
