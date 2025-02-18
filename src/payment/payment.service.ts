@@ -8,11 +8,13 @@ import { SettingCompanyService } from 'src/setting-company/setting-company.servi
 import { AxiosService } from 'src/utility/axios.service';
 import { firstValueFrom, map } from 'rxjs';
 import { ImageHelperService } from 'src/utility/image-helper.service';
+import { AppGateway } from 'src/app.gateway';
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class PaymentService {
 
     constructor(
+        private _appGateway: AppGateway,
         private _axiosService: AxiosService,
         private _prismaService: PrismaService,
         private _utilityService: UtilityService,
@@ -665,9 +667,50 @@ export class PaymentService {
 
     async paymentCallback(payload: any): Promise<any> {
         try {
+            console.log("payload callback =>", payload);
+
+            const payment = await this._prismaService
+                .payment
+                .findFirst({
+                    where: {
+                        id_payment: payload.event ? payload.data.id : payload.payment_id
+                    }
+                });
+
+            if (!payment) {
+                return {
+                    status: true,
+                    message: 'Payment Not Found',
+                    data: payload
+                }
+            }
+
+            const updatePayment = await this._prismaService
+                .payment
+                .update({
+                    where: {
+                        id_payment: parseInt(payment.id_payment as any),
+                    },
+                    data: {
+                        payment_status: 'PAID',
+                        update_at: new Date(),
+                        update_by: 1,
+                    }
+                });
+
+            if (!updatePayment) {
+                return {
+                    status: true,
+                    message: 'Update Status Payment Failed',
+                    data: payload
+                }
+            };
+
+            this._appGateway.sendPaymentNotification(updatePayment.payment_token);
+
             return {
                 status: true,
-                message: 'Callback Success',
+                message: 'Payment Success',
                 data: payload
             }
 

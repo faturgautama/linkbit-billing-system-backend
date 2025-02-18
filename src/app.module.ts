@@ -30,6 +30,7 @@ import { PaymentService } from './payment/payment.service';
 import { AxiosService } from './utility/axios.service';
 import { HttpModule, HttpService } from '@nestjs/axios';
 import { ImageHelperService } from './utility/image-helper.service';
+import { AppGateway } from './app.gateway';
 
 @Module({
     imports: [
@@ -68,7 +69,8 @@ import { ImageHelperService } from './utility/image-helper.service';
         InvoiceService,
         PaymentService,
         AxiosService,
-        ImageHelperService
+        ImageHelperService,
+        AppGateway,
     ],
 })
 export class AppModule { }
