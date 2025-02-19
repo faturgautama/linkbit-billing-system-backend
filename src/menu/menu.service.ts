@@ -15,21 +15,44 @@ export class MenuService {
             let res: any[] = await this._prismaService
                 .menu
                 .findMany({
-                    where: Object.keys(query).reduce((aggregate, property) => {
-                        if (property == 'id_kelas') {
-                            aggregate[property] = parseInt(query[property] as any);
-                        }
-                        return aggregate;
-                    }, {}),
                     orderBy: {
-                        id_menu: 'asc'
+                        id_menu: 'asc',
                     }
                 });
+
+            const newArr = res.map((item) => {
+                return {
+                    id_menu: item.id_menu,
+                    id_parent: item.id_parent,
+                    menu_parent: item.id_parent ? res.find(menus => menus.id_menu == item.id_parent).menu : null,
+                    ...item,
+                }
+            }).sort((a, b) => {
+                if (a.id_parent === null && b.id_parent !== null) return -1;
+                if (a.id_parent !== null && b.id_parent === null) return 1;
+                return a.id_parent - b.id_parent;
+            }).filter((item: any) => {
+                if (query.id_parent && !query.menu) {
+                    return item.id_parent == query.id_parent
+                };
+
+                if (!query.id_parent && query.menu) {
+                    return item.menu.toLowerCase().includes(query.menu.toLowerCase())
+                };
+
+                if (query.id_parent && query.menu) {
+                    return item.id_parent == query.id_parent && item.menu.toLowerCase().includes(query.menu.toLowerCase());
+                };
+
+                if (!query.id_parent && !query.menu) {
+                    return item;
+                };
+            })
 
             return {
                 status: true,
                 message: '',
-                data: res
+                data: newArr
             }
 
         } catch (error) {
