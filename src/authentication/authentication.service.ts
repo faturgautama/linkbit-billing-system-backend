@@ -184,7 +184,7 @@ export class AuthenticationService {
         }
     }
 
-    async register(req: Request, payload: AuthenticationModel.IRegisterPayload): Promise<{ result: boolean, message: string, data: any }> {
+    async register(req: Request, payload: AuthenticationModel.IRegisterPayload): Promise<{ status: boolean, message: string, data: any }> {
         try {
             let data = null, isUserExist = null;
 
@@ -196,7 +196,7 @@ export class AuthenticationService {
 
             if (isUserExist) {
                 return {
-                    result: false,
+                    status: false,
                     message: "Username Sudah Terdaftar",
                     data: null,
                 }
@@ -224,7 +224,7 @@ export class AuthenticationService {
 
             if (createUser) {
                 return {
-                    result: true,
+                    status: true,
                     message: "User Berhasil Didaftarkan",
                     data: null,
                 }
