@@ -1,6 +1,8 @@
 export namespace UserModel {
     export class IUser {
         id_user: number;
+        id_setting_company: number;
+        company_name: string;
         id_user_group: number;
         user_group: string;
         username: string;
@@ -18,6 +20,7 @@ export namespace UserModel {
     }
 
     export class IUserQueryParams {
+        id_setting_company?: number;
         id_user_group?: number;
         username?: string;
         full_name?: string;
@@ -38,6 +41,7 @@ export namespace UserModel {
 
     export class UpdateUser {
         id_user: number;
+        id_setting_company: number;
         id_user_group: number;
         username: string;
         full_name: string;

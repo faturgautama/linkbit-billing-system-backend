@@ -33,7 +33,7 @@ export class UserService {
                 .user
                 .findMany({
                     where: Object.keys(queries).reduce((aggregate, property) => {
-                        if (property == 'id_user_group') {
+                        if (property == 'id_user_group' || property == 'id_setting_company') {
                             aggregate[property] = parseInt(queries[property] as any);
                         } else {
                             aggregate[property] = {
@@ -41,14 +41,17 @@ export class UserService {
                             }
                         }
                         return aggregate;
-                    }, {
-
-                    }),
+                    }, {}),
                     include: {
                         user_group: {
                             select: {
                                 id_user_group: true,
                                 user_group: true
+                            }
+                        },
+                        setting_company: {
+                            select: {
+                                company_name: true
                             }
                         }
                     },
@@ -63,6 +66,8 @@ export class UserService {
                 data: res.map((item) => {
                     return {
                         id_user: item.id_user,
+                        id_setting_company: item.id_setting_company,
+                        company_name: item.setting_company.company_name,
                         id_user_group: item.user_group.id_user_group,
                         user_group: item.user_group.user_group,
                         username: item.username,
@@ -110,6 +115,11 @@ export class UserService {
                                 id_user_group: true,
                                 user_group: true
                             }
+                        },
+                        setting_company: {
+                            select: {
+                                company_name: true
+                            }
                         }
                     }
                 });
@@ -121,6 +131,8 @@ export class UserService {
                 message: '',
                 data: {
                     ...data,
+                    id_setting_company: data.id_setting_company,
+                    company_name: data.setting_company.company_name,
                     id_user_group: user_group.id_user_group,
                     user_group: user_group.user_group,
                 }

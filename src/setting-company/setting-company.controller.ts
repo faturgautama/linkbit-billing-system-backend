@@ -17,9 +17,9 @@ export class SettingCompanyController {
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: SettingCompanyModel.GetByIdSettingCompany })
-    async getAll(@Res() res: Response): Promise<any> {
+    async getAll(@Query() query: SettingCompanyModel.ISettingCompanyQuery, @Res() res: Response): Promise<any> {
         try {
-            const data = await this._settingCompanyService.getAll();
+            const data = await this._settingCompanyService.getAll(query);
             return res.status(HttpStatus.OK).json(data);
         } catch (error) {
             const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;

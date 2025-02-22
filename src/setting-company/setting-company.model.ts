@@ -28,6 +28,13 @@ export namespace SettingCompanyModel {
         api_key_pg: string;
     }
 
+    export class ISettingCompanyQuery {
+        company_name?: string;
+        is_mitra?: boolean;
+        is_cabang?: boolean;
+        is_active?: boolean;
+    }
+
     export class GetAllSettingCompany {
         status: boolean;
         message: string;

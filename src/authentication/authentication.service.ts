@@ -28,7 +28,9 @@ export class AuthenticationService {
                     },
                     setting_company: {
                         select: {
-                            company_name: true
+                            company_name: true,
+                            is_cabang: true,
+                            is_mitra: true
                         }
                     }
                 }
@@ -86,6 +88,20 @@ export class AuthenticationService {
                 notes: user.notes,
             });
 
+            let company_type = "KANTOR PUSAT";
+
+            if (!user.setting_company.is_cabang && !user.setting_company.is_mitra) {
+                company_type = "KANTOR PUSAT";
+            }
+
+            if (user.setting_company.is_cabang && !user.setting_company.is_mitra) {
+                company_type = "KANTOR CABANG";
+            }
+
+            if (!user.setting_company.is_cabang && user.setting_company.is_mitra) {
+                company_type = "MITRA";
+            }
+
             return {
                 status: true,
                 message: "OK",
@@ -93,6 +109,7 @@ export class AuthenticationService {
                     id_user: user.id_user,
                     id_setting_company: user.id_setting_company,
                     company_name: user.setting_company.company_name,
+                    company_type: company_type,
                     id_user_group: user.id_user_group,
                     user_group: user.user_group.user_group,
                     username: user.username,
@@ -248,12 +265,28 @@ export class AuthenticationService {
                         setting_company: {
                             select: {
                                 company_name: true,
+                                is_cabang: true,
+                                is_mitra: true
                             }
                         }
                     }
                 });
 
             const { user_group, setting_company, ...data } = result;
+
+            let company_type = "KANTOR PUSAT";
+
+            if (!setting_company.is_cabang && !setting_company.is_mitra) {
+                company_type = "KANTOR PUSAT";
+            }
+
+            if (setting_company.is_cabang && !setting_company.is_mitra) {
+                company_type = "KANTOR CABANG";
+            }
+
+            if (!setting_company.is_cabang && setting_company.is_mitra) {
+                company_type = "MITRA";
+            }
 
             return {
                 status: true,
@@ -263,7 +296,8 @@ export class AuthenticationService {
                     id_user_group: user_group.id_user_group,
                     user_group: user_group.user_group,
                     id_setting_company: data.id_setting_company,
-                    company_name: setting_company.company_name
+                    company_name: setting_company.company_name,
+                    company_type: company_type
                 }
             }
 

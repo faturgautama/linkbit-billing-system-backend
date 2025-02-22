@@ -8,6 +8,7 @@ export namespace AuthenticationModel {
         id_user: number;
         id_setting_company: number;
         company_name: string;
+        company_type: string;
         id_user_group: number;
         user_group: string;
         username: string;

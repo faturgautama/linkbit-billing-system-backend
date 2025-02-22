@@ -10,14 +10,26 @@ export class SettingCompanyService {
         private _prismaService: PrismaService,
     ) { }
 
-    async getAll(): Promise<SettingCompanyModel.GetAllSettingCompany> {
+    async getAll(query: SettingCompanyModel.ISettingCompanyQuery): Promise<SettingCompanyModel.GetAllSettingCompany> {
         try {
             let res: any[] = await this._prismaService
                 .setting_company
                 .findMany({
-                    where: {
-                        is_active: true
-                    },
+                    where: Object.keys(query).reduce((aggregate, property) => {
+                        if (property === 'company_name') {
+                            aggregate[property] = { contains: query[property] };
+                        } else {
+                            // For boolean values, check if the value is a string and convert it
+                            if (query[property] === 'true') {
+                                aggregate[property] = true;
+                            } else if (query[property] === 'false') {
+                                aggregate[property] = false;
+                            } else {
+                                aggregate[property] = query[property];
+                            }
+                        }
+                        return aggregate;
+                    }, {}),
                     orderBy: {
                         id_setting_company: 'asc'
                     }
