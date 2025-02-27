@@ -120,6 +120,7 @@ model product {
 
 model group_pelanggan {
     id_group_pelanggan Int         @id @default(autoincrement())
+    id_setting_company Int
     group_pelanggan    String
     is_active          Boolean     @default(true)
     create_at          DateTime    @default(now())
@@ -157,20 +158,22 @@ model pelanggan {
 }
 
 model pelanggan_product {
-    id_pelanggan_product Int       @id @default(autoincrement())
-    pelanggan            pelanggan @relation(fields: [id_pelanggan], references: [id_pelanggan])
-    id_pelanggan         Int
-    product              product   @relation(fields: [id_product], references: [id_product])
-    id_product           Int
-    start_date           DateTime
-    invoice_cycle        String
-    expired_date         DateTime?
-    is_active            Boolean   @default(true)
-    create_at            DateTime  @default(now())
-    create_by            Int
-    update_at            DateTime?
-    update_by            Int?
-    invoice              invoice[]
+    id_pelanggan_product     Int       @id @default(autoincrement())
+    pelanggan                pelanggan @relation(fields: [id_pelanggan], references: [id_pelanggan])
+    id_pelanggan             Int
+    product                  product   @relation(fields: [id_product], references: [id_product])
+    id_product               Int
+    start_date               DateTime
+    price                    Float
+    invoice_cycle            String
+    days_before_send_invoice Int
+    expired_date             DateTime?
+    is_active                Boolean   @default(true)
+    create_at                DateTime  @default(now())
+    create_by                Int
+    update_at                DateTime?
+    update_by                Int?
+    invoice                  invoice[]
 }
 
 model invoice {

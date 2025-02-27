@@ -35,21 +35,51 @@ export class PelangganService {
             let res: any[] = await this._prismaService
                 .pelanggan
                 .findMany({
-                    where: Object.keys(query).reduce((aggregate, property) => {
-                        if (property == 'id_group_pelanggan') {
+                    where: Object.keys(queries).reduce((aggregate, property) => {
+                        if (property == 'id_group_pelanggan' || property == 'id_setting_company') {
                             aggregate[property] = parseInt(query[property] as any);
                         }
                         return aggregate;
                     }, {}),
                     orderBy: {
                         id_pelanggan: 'asc'
-                    }
+                    },
                 });
+
+            let pelangganArr = [];
+
+            for (let item of res) {
+                const product_pelanggan = await this._prismaService
+                    .pelanggan_product
+                    .findFirst({
+                        where: {
+                            id_pelanggan: item.id_pelanggan
+                        },
+                        include: {
+                            product: {
+                                select: {
+                                    id_product: true,
+                                    product_name: true
+                                }
+                            }
+                        }
+                    });
+
+                item.id_pelanggan_product = product_pelanggan.id_pelanggan_product;
+                item.product_id = product_pelanggan.product.id_product;
+                item.product_name = product_pelanggan.product.product_name;
+                item.product_start_date = product_pelanggan.start_date;
+                item.product_price = product_pelanggan.price;
+                item.product_days_before_send_invoice = product_pelanggan.days_before_send_invoice;
+                item.product_invoice_cycle = product_pelanggan.invoice_cycle;
+
+                pelangganArr.push(item);
+            }
 
             return {
                 status: true,
                 message: '',
-                data: res
+                data: pelangganArr
             }
 
         } catch (error) {
@@ -159,6 +189,159 @@ export class PelangganService {
                 status: true,
                 message: '',
                 data: res
+            }
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
+    async updateProductPelanggan(req: Request, payload: PelangganModel.UpdateProductPelanggan): Promise<any> {
+        try {
+            let res = null;
+
+            let pelanggan_product = await this._prismaService
+                .pelanggan_product
+                .findFirst({
+                    where: {
+                        id_pelanggan: parseInt(payload.id_pelanggan as any),
+                    }
+                });
+
+            if (pelanggan_product) {
+                res = await this._prismaService
+                    .pelanggan_product
+                    .update({
+                        where: {
+                            id_pelanggan_product: parseInt(pelanggan_product.id_pelanggan_product as any)
+                        },
+                        data: {
+                            id_product: parseInt(payload.id_product as any),
+                            invoice_cycle: payload.invoice_cycle,
+                            price: payload.price,
+                            days_before_send_invoice: payload.days_before_send_invoice,
+                            start_date: new Date(payload.start_date),
+                            update_at: new Date(),
+                            update_by: parseInt(req['user']['id_user'] as any)
+                        }
+                    });
+            } else {
+                res = await this._prismaService
+                    .pelanggan_product
+                    .create({
+                        data: {
+                            id_pelanggan: parseInt(payload.id_pelanggan as any),
+                            id_product: parseInt(payload.id_product as any),
+                            start_date: new Date(payload.start_date),
+                            invoice_cycle: payload.invoice_cycle,
+                            price: payload.price,
+                            days_before_send_invoice: payload.days_before_send_invoice,
+                            create_at: new Date(),
+                            create_by: parseInt(req['user']['id_user'] as any)
+                        }
+                    });
+            }
+
+            return {
+                status: true,
+                message: '',
+                data: res
+            }
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
+    async updateManyProductPelanggan(req: Request, payload: PelangganModel.UpdateManyProductPelanggan): Promise<any> {
+        try {
+            let res = 0;
+
+            for (const item of payload.pelanggan) {
+                let pelanggan_product = await this._prismaService
+                    .pelanggan_product
+                    .findFirst({
+                        where: {
+                            id_pelanggan: parseInt(item as any),
+                        },
+                        select: {
+                            id_pelanggan_product: true
+                        }
+                    });
+
+
+                if (pelanggan_product) {
+                    const update = await this._prismaService
+                        .pelanggan_product
+                        .update({
+                            where: {
+                                id_pelanggan_product: parseInt(pelanggan_product.id_pelanggan_product as any)
+                            },
+                            data: {
+                                id_product: payload.id_product,
+                                invoice_cycle: payload.invoice_cycle,
+                                price: payload.price,
+                                days_before_send_invoice: payload.days_before_send_invoice,
+                                start_date: new Date(payload.start_date),
+                                update_at: new Date(),
+                                update_by: parseInt(req['user']['id_user'] as any)
+                            }
+                        });
+
+                    if (update.id_pelanggan_product) {
+                        res += 1;
+                    }
+
+                } else {
+                    const create = await this._prismaService
+                        .pelanggan_product
+                        .create({
+                            data: {
+                                id_pelanggan: parseInt(item as any),
+                                id_product: payload.id_product,
+                                price: payload.price,
+                                days_before_send_invoice: payload.days_before_send_invoice,
+                                start_date: new Date(payload.start_date),
+                                invoice_cycle: payload.invoice_cycle,
+                                create_at: new Date(),
+                                create_by: parseInt(req['user']['id_user'] as any)
+                            }
+                        });
+
+                    if (create.id_pelanggan_product) {
+                        res += 1;
+                    }
+                }
+            }
+
+            return {
+                status: res == payload.pelanggan.length ? true : false,
+                message: 'Produk Layanan Pelanggan Berhasil Disimpan',
+                data: null
             }
 
         } catch (error) {

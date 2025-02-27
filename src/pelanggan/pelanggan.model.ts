@@ -74,4 +74,23 @@ export namespace PelangganModel {
         pic_name: string;
         notes: string;
     }
+
+    export class UpdateProductPelanggan {
+        id_pelanggan: number;
+        id_product: number;
+        start_date: Date;
+        price: number;
+        invoice_cycle: string;
+        days_before_send_invoice: number;
+    }
+
+    export class UpdateManyProductPelanggan {
+        id_product: number;
+        start_date: Date;
+        price: number;
+        invoice_cycle: string;
+        days_before_send_invoice: number;
+        pelanggan: number[]
+    }
 }
+

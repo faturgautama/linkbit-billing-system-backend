@@ -17,9 +17,9 @@ export class GroupPelangganController {
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: GroupPelangganModel.GetAllGroupPelanggan })
-    async getAll(@Query() query: GroupPelangganModel.IGroupPelangganQueryParams, @Res() res: Response): Promise<any> {
+    async getAll(@Query() query: GroupPelangganModel.IGroupPelangganQueryParams, @Req() req: Request, @Res() res: Response): Promise<any> {
         try {
-            const data = await this._groupPelangganService.getAll(query);
+            const data = await this._groupPelangganService.getAll(req, query);
             return res.status(HttpStatus.OK).json(data);
         } catch (error) {
             const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
