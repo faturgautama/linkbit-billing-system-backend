@@ -246,7 +246,7 @@ export class PaymentService {
                 }
             }
 
-            const token = this._utilityService.onEncrypt(JSON.stringify(invoice.data));
+            const token = this._utilityService.onEncrypt(JSON.stringify(invoice.data.id_invoice));
 
             return {
                 status: true,
@@ -283,11 +283,7 @@ export class PaymentService {
                 }
             }
 
-            return {
-                status: true,
-                message: '',
-                data: JSON.parse(data)
-            }
+            return this._invoiceService.getById(parseInt(data));
 
         } catch (error) {
             const status = error.message.includes('not found')

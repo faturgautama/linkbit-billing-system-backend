@@ -43,9 +43,35 @@ export class InvoiceService {
                 .invoice
                 .findMany({
                     where: Object.keys(queries).reduce((aggregate, property) => {
-                        if (property == 'id_invoice' || property == 'id_product') {
+                        if (property == 'is_deleted') {
+                            aggregate[property] = false;
+                        };
+
+                        if (property == 'id_invoice' || property == 'id_product' || property == 'id_setting_company') {
                             aggregate[property] = parseInt(queries[property] as any);
-                        }
+                        };
+
+                        if (property == 'invoice_date') {
+                            const queryDate = new Date(queries[property]);
+                            const year = queryDate.getFullYear();
+                            const month = queryDate.getMonth(); // No need to subtract 1
+
+                            const startDate = new Date(year, month, 1); // First day of the month
+                            const endDate = new Date(year, month + 1, 1); // First day of the next month
+
+                            aggregate[property] = {
+                                gt: startDate, // Greater than or equal to the first day of the month
+                                lt: endDate, // Less than the first day of the next month
+                            };
+                        };
+
+                        if (property == 'invoice_number' || property == 'invoice_status') {
+                            aggregate[property] = {
+                                contains: queries[property],
+                                mode: 'insensitive'
+                            }
+                        };
+
                         return aggregate;
                     }, {}),
                     include: {
@@ -54,6 +80,7 @@ export class InvoiceService {
                                 id_pelanggan: true,
                                 full_name: true,
                                 pelanggan_code: true,
+                                whatsapp: true,
                                 setting_company: {
                                     select: {
                                         id_setting_company: true,
@@ -87,6 +114,7 @@ export class InvoiceService {
                         company_name: item.pelanggan.setting_company.company_name,
                         full_name: item.pelanggan.full_name,
                         pelanggan_code: item.pelanggan.pelanggan_code,
+                        whatsapp: item.pelanggan.whatsapp,
                         id_pelanggan_product: item.id_pelanggan_product,
                         id_product: item.id_product,
                         product_name: item.product.product_name,
@@ -140,6 +168,7 @@ export class InvoiceService {
                                 id_pelanggan: true,
                                 full_name: true,
                                 pelanggan_code: true,
+                                whatsapp: true,
                                 setting_company: {
                                     select: {
                                         id_setting_company: true,
@@ -169,6 +198,7 @@ export class InvoiceService {
                     company_name: res.pelanggan.setting_company.company_name,
                     full_name: res.pelanggan.full_name,
                     pelanggan_code: res.pelanggan.pelanggan_code,
+                    whatsapp: res.pelanggan.whatsapp,
                     id_pelanggan_product: res.id_pelanggan_product,
                     id_product: res.id_product,
                     product_name: res.product.product_name,
@@ -211,11 +241,36 @@ export class InvoiceService {
 
     async create(req: Request, payload: InvoiceModel.CreateInvoice): Promise<any> {
         try {
+            const queryDate = new Date(payload.invoice_date);
+            const year = queryDate.getFullYear();
+            const month = queryDate.getMonth() + 1;
+
+            const startDate = new Date(year, month, 1);
+            const endDate = new Date(year, month + 1, 1);
+
+            const invoiceMonthCount = await this._prismaService
+                .invoice
+                .count({
+                    where: {
+                        invoice_date: {
+                            gt: startDate,
+                            lt: endDate,
+                        }
+                    }
+                });
+
+            const prefix = invoiceMonthCount < 10 ? '000' :
+                (invoiceMonthCount < 100 ? '00' :
+                    (invoiceMonthCount < 1000 ? '0' : '')
+                );
+
+            const invoice_number = `INV-${payload.id_pelanggan}-${month > 9 ? month : `0${month}`}${year}-${prefix}${invoiceMonthCount + 1}`;
             let res = await this._prismaService
                 .invoice
                 .create({
                     data: {
                         ...payload,
+                        invoice_number: invoice_number,
                         create_at: new Date(),
                         create_by: parseInt(req['user']['id_user'] as any)
                     }

@@ -1,3 +1,5 @@
+import { IsEnum, IsOptional } from "class-validator";
+
 export namespace InvoiceModel {
     export class IInvoice {
         id_invoice: number;
@@ -8,6 +10,7 @@ export namespace InvoiceModel {
         company_name: string;
         full_name: string;
         pelanggan_code: string;
+        whatsapp: string;
         id_pelanggan_product: number;
         id_product: number;
         product_name: string;
@@ -30,12 +33,23 @@ export namespace InvoiceModel {
         delete_by: number;
     }
 
+    export enum InvoiceStatus {
+        PENDING = 'PENDING',
+        EXPIRED = 'EXPIRED',
+        CANCEL = 'CANCEL',
+        PAID = 'PAID',
+    }
+
     export class IInvoiceQueryParams {
         id_setting_company?: string;
         id_pelanggan?: string;
         id_product?: string;
         invoice_number?: string;
         invoice_date?: string;
+
+        @IsOptional()
+        @IsEnum(InvoiceStatus)
+        invoice_status?: InvoiceStatus;
     }
 
     export class GetAllInvoice {
@@ -51,7 +65,7 @@ export namespace InvoiceModel {
     }
 
     export class CreateInvoice {
-        invoice_number: string;
+        invoice_number?: string;
         invoice_date: Date;
         id_pelanggan: number;
         id_pelanggan_product: number;
