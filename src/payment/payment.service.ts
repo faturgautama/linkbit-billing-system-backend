@@ -706,6 +706,29 @@ export class PaymentService {
                 }
             }
 
+            const updatePayment = await this._prismaService
+                .payment
+                .update({
+                    where: {
+                        id_payment: parseInt(id_payment as any),
+                    },
+                    data: {
+                        payment_status: 'PAID',
+                        update_at: new Date(),
+                        update_by: 1,
+                    }
+                });
+
+            if (!updatePayment) {
+                return {
+                    status: false,
+                    message: 'Update Status Payment Failed',
+                    data: null
+                }
+            };
+
+            this._appGateway.sendPaymentNotification({ token: updatePayment.payment_token });
+
             return {
                 status: true,
                 message: 'Simulate Success, Waiting Callback',
@@ -743,9 +766,9 @@ export class PaymentService {
 
             if (!payment) {
                 return {
-                    status: true,
+                    status: false,
                     message: 'Payment Not Found',
-                    data: payload
+                    data: null
                 }
             }
 
@@ -764,9 +787,9 @@ export class PaymentService {
 
             if (!updatePayment) {
                 return {
-                    status: true,
+                    status: false,
                     message: 'Update Status Payment Failed',
-                    data: payload
+                    data: null
                 }
             };
 
