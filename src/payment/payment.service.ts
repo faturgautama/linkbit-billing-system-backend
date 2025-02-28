@@ -281,9 +281,32 @@ export class PaymentService {
                     message: 'Token Is Invalid',
                     data: null
                 }
-            }
+            };
 
-            return this._invoiceService.getById(parseInt(data));
+            let invoice = await this._invoiceService.getById(parseInt(data));
+
+            const checkIsPaymentExist = await this._prismaService
+                .payment
+                .findFirst({
+                    where: {
+                        id_invoice: parseInt(data)
+                    }
+                });
+
+
+            if (!checkIsPaymentExist) {
+                return {
+                    status: true,
+                    data: { ...invoice.data, payment: null, is_payment_generated: false },
+                    message: ''
+                }
+            } else {
+                return {
+                    status: true,
+                    data: { ...invoice.data, payment: checkIsPaymentExist, is_payment_generated: true, },
+                    message: ''
+                }
+            }
 
         } catch (error) {
             const status = error.message.includes('not found')
@@ -315,11 +338,21 @@ export class PaymentService {
                 }
             };
 
+            const invoice = await this._invoiceService.getById(parseInt(decryptedData));
+
+            if (!invoice.status) {
+                return {
+                    status: false,
+                    message: 'Invoice Not Found',
+                    data: null
+                }
+            };
+
             const pelanggan = await this._prismaService
                 .pelanggan
                 .findUnique({
                     where: {
-                        id_pelanggan: JSON.parse(decryptedData).id_pelanggan
+                        id_pelanggan: invoice.data.id_pelanggan
                     },
                     select: {
                         id_setting_company: true
@@ -381,6 +414,7 @@ export class PaymentService {
                                         payment_method_type: 'Virtual Account',
                                         payment_method_name: item.name,
                                         payment_method_code: item.code,
+                                        payment_method_instruction: this.getPaymentMethodCaraBayar(item.code),
                                         image: this._imageHelperService.getBase64Image(item.code.toLowerCase() + '.png')
                                     }
                                 })
@@ -426,13 +460,23 @@ export class PaymentService {
                 }
             };
 
-            const dataFromToken = JSON.parse(decryptedData)
+            const invoice = await this._invoiceService.getById(parseInt(decryptedData));
+
+            if (!invoice.status) {
+                return {
+                    status: false,
+                    message: 'Token Is Invalid',
+                    data: null
+                }
+            }
+
+            const dataFromToken = invoice.data;
 
             const pelanggan = await this._prismaService
                 .pelanggan
                 .findUnique({
                     where: {
-                        id_pelanggan: JSON.parse(decryptedData).id_pelanggan
+                        id_pelanggan: invoice.data.id_pelanggan
                     },
                     select: {
                         id_setting_company: true
@@ -702,7 +746,7 @@ export class PaymentService {
                 }
             };
 
-            this._appGateway.sendPaymentNotification(updatePayment.payment_token);
+            this._appGateway.sendPaymentNotification({ token: updatePayment.payment_token });
 
             return {
                 status: true,
@@ -763,5 +807,698 @@ export class PaymentService {
                 status
             );
         }
+    }
+
+    private getPaymentMethodCaraBayar(payment_method_code: string) {
+        let payment_method_instructions = [];
+
+        if (payment_method_code == 'MANDIRI') {
+            payment_method_instructions.push(
+                {
+                    type: 'ATM',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: TEMUKAN ATM TERDEKAT</p>
+                            <ol>
+                                <li>Masukkan ATM dan tekan <strong>"Bahasa Indonesia"</strong></li>
+                                <li>Masukkan PIN, lalu tekan <strong>"Benar"</strong></li>
+                                <li>Pilih <strong>"Pembayaran"</strong>, lalu pilih <strong>"Multi Payment"</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Masukkan kode perusahaan <strong>'88908'</strong> (<strong>88908 XENDIT</strong>) untuk closed amount VA dan <strong>‘88608’</strong> (<strong>88608 XENDIT</strong>) untuk open amount VA, lalu tekan <strong>"BENAR"</strong></li>
+                                <li>Masukkan Nomor Virtual Account <strong>88908988586665460</strong> (contoh), lalu tekan <strong>"BENAR"</strong></li>
+                                <li>Untuk open amount VA, masukkan nominal yang ingin di transfer, lalu tekan <strong>"BENAR"</strong></li>
+                                <li>Informasi pelanggan akan ditampilkan, pilih nomor <strong>1</strong> sesuai dengan nominal pembayaran kemudian tekan <strong>"YA"</strong></li>
+                                <li>Konfirmasi pembayaran akan muncul, tekan <strong>"YES"</strong>, untuk melanjutkan</li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Simpan bukti transaksi anda</li>
+                                <li>Transaksi anda berhasil</li>
+                                <li>Setelah transaksi anda selesai, invoice ini akan diupdate secara otomatis. Proses ini mungkin memakan waktu hingga 5 menit</li>
+                            </ol>
+                        </div>
+                    `
+                },
+                {
+                    type: 'Internet Banking',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: MASUK KE AKUN ANDA</p>
+                            <ol>
+                                <li>Buka situs Mandiri Internet Banking <a href="https://ibank.bankmandiri.co.id" target="_blank">https://ibank.bankmandiri.co.id</a></li>
+                                <li>Masuk menggunakan <strong>USER ID</strong> dan <strong>PASSWORD</strong> anda</li>
+                                <li>Buka halaman beranda, kemudian pilih <strong>"Pembayaran"</strong></li>
+                                <li>Pilih <strong>"Multi Payment"</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Pilih <strong>88908 XENDIT</strong> (untuk closed VA) dan <strong>88608 XENDIT</strong> (untuk open VA) sebagai penyedia jasa</li>
+                                <li>Masukkan Nomor Virtual Account <strong>88908988586665460</strong> (contoh)</li>
+                                <li>Lalu pilih <strong>"Lanjut"</strong></li>
+                                <li>Apabila semua detail benar tekan <strong>"KONFIRMASI"</strong></li>
+                                <li>Masukkan <strong>PIN / Challenge Code Token</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Setelah transaksi pembayaran Anda selesai, simpan bukti pembayaran</li>
+                                <li>Invoice ini akan diperbarui secara otomatis. Ini bisa memakan waktu hingga 5 menit</li>
+                            </ol>
+                        </div>
+                `
+                },
+                {
+                    type: 'Mobile Banking (New Livin by Mandiri - Yellow)',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: MASUK KE AKUN ANDA</p>
+                            <ol>
+                                <li>Buka aplikasi <strong>Livin by Mandiri</strong>, masukkan <strong>PASSWORD</strong> atau lakukan verifikasi wajah</li>
+                                <li>Pilih menu <strong>"IDR Transfer"</strong></li>
+                                <li>Pilih <strong>“Transfer to new recipient”</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Masukkan Nomor Virtual Account <strong>88908988586665460</strong> (contoh)</li>
+                                <li>Konfirmasi detail VA dan klik <strong>“Continue”</strong></li>
+                                <li>Masukkan nominal yang ingin dibayarkan (Jika VA merupakan closed VA, maka nominal akan otomatis terisi)</li>
+                                <li>Tinjau dan konfirmasi detail transaksi anda, lalu klik <strong>“Continue”</strong></li>
+                                <li>Selesaikan transaksi dengan memasukkan <strong>MPIN</strong> anda</li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Setelah transaksi pembayaran Anda selesai, simpan bukti pembayaran</li>
+                                <li>Invoice ini akan diperbarui secara otomatis</li>
+                            </ol>
+                        </div>
+                   `
+                },
+            )
+        };
+
+        if (payment_method_code == 'BRI') {
+            payment_method_instructions.push(
+                {
+                    type: 'ATM',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: TEMUKAN ATM TERDEKAT</p>
+                            <ol>
+                                <li>Masukkan kartu, kemudian pilih bahasa dan masukkan <strong>PIN</strong> anda</li>
+                                <li>Pilih <strong>"Transaksi Lain"</strong> dan pilih <strong>"Pembayaran"</strong></li>
+                                <li>Pilih menu <strong>"Lainnya"</strong> dan pilih <strong>"Briva"</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Masukkan Nomor Virtual Account dan jumlah yang ingin anda bayarkan</li>
+                                <li>Periksa data transaksi dan tekan <strong>"YA"</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Setelah transaksi anda selesai, invoice ini akan diupdate secara otomatis. Proses ini mungkin memakan waktu hingga 5 menit</li>
+                            </ol>
+                        </div>
+                    `
+                },
+                {
+                    type: 'Internet Banking',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: MASUK KE AKUN ANDA</p>
+                            <ol>
+                                <li>Buka situs <a href="https://ib.bri.co.id/ib-bri/" target="_blank">https://ib.bri.co.id/ib-bri/</a>, dan masukkan <strong>USER ID</strong> dan <strong>PASSWORD</strong> anda</li>
+                                <li>Pilih <strong>"Pembayaran"</strong> dan pilih <strong>"Briva"</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Masukkan Nomor Virtual Account dan jumlah yang ingin anda bayarkan</li>
+                                <li>Masukkan <strong>password</strong> anda kemudian masukkan <strong>mToken internet banking</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Setelah transaksi anda selesai, invoice ini akan diupdate secara otomatis. Proses ini mungkin memakan waktu hingga 5 menit</li>
+                            </ol>
+                        </div>
+                `
+                },
+                {
+                    type: 'Mobile Banking',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: MASUK KE AKUN ANDA</p>
+                            <ol>
+                                <li>Buka aplikasi <strong>BRI Mobile Banking</strong>, masukkan <strong>USER ID</strong> dan <strong>PIN</strong> anda</li>
+                                <li>Pilih <strong>"Pembayaran"</strong> dan pilih <strong>"Briva"</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Masukkan Nomor Virtual Account anda dan jumlah yang ingin anda bayarkan</li>
+                                <li>Masukkan <strong>PIN Mobile Banking BRI</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Setelah transaksi anda selesai, invoice ini akan diupdate secara otomatis. Proses ini mungkin memakan waktu hingga 5 menit</li>
+                            </ol>
+                        </div>
+                   `
+                },
+            )
+        };
+
+        if (payment_method_code == 'BNI') {
+            payment_method_instructions.push(
+                {
+                    type: 'ATM',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: TEMUKAN ATM TERDEKAT</p>
+                            <ol>
+                                <li>Masukkan kartu ATM anda</li>
+                                <li>Pilih bahasa</li>
+                                <li>Masukkan <strong>PIN ATM</strong> anda</li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Pilih <strong>"Menu Lainnya"</strong></li>
+                                <li>Pilih <strong>"Transfer"</strong></li>
+                                <li>Pilih jenis rekening yang akan anda gunakan (contoh: <strong>"Dari Rekening Tabungan"</strong>)</li>
+                                <li>Pilih <strong>"Virtual Account Billing"</strong></li>
+                                <li>Masukkan Nomor Virtual Account anda contoh: <strong>8808988556620621</strong></li>
+                                <li>Tagihan yang harus dibayarkan akan muncul pada layar konfirmasi</li>
+                                <li>Konfirmasi, apabila telah sesuai, lanjutkan transaksi</li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Transaksi Anda telah selesai</li>
+                                <li>Setelah transaksi anda selesai, invoice ini akan diupdate secara otomatis. Proses ini mungkin memakan waktu hingga 5 menit</li>
+                            </ol>
+                        </div>
+                    `
+                },
+                {
+                    type: 'Internet Banking',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: MASUK KE AKUN ANDA</p>
+                            <ol>
+                                <li>Buka situs <a href="https://ibank.bni.co.id" target="_blank">https://ibank.bni.co.id</a></li>
+                                <li>Masukkan <strong>User ID</strong> dan <strong>Password</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Pilih menu <strong>"Transfer"</strong></li>
+                                <li>Pilih menu <strong>"Virtual Account Billing"</strong></li>
+                                <li>Masukkan Nomor Virtual Account contoh: <strong>8808988556620621</strong></li>
+                                <li>Lalu pilih rekening debet yang akan digunakan. Kemudian tekan <strong>"Lanjut"</strong></li>
+                                <li>Tagihan yang harus dibayarkan akan muncul pada layar konfirmasi</li>
+                                <li>Masukkan <strong>Kode Otentikasi Token</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Transaksi Anda telah selesai</li>
+                                <li>Setelah transaksi anda selesai, invoice ini akan diupdate secara otomatis. Proses ini mungkin memakan waktu hingga 5 menit</li>
+                            </ol>
+                        </div>
+                `
+                },
+                {
+                    type: 'Mobile Banking',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: MASUK KE AKUN ANDA</p>
+                            <ol>
+                                <li>Akses <strong>BNI Mobile Banking</strong> melalui handphone</li>
+                                <li>Masukkan <strong>User ID</strong> dan <strong>Password</strong></li>
+                                <li>Pilih menu <strong>"Transfer"</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Pilih menu <strong>"Virtual Account Billing"</strong>, lalu pilih rekening debet</li>
+                                <li>Masukkan Nomor Virtual Account anda contoh: <strong>8808988556620621</strong> pada menu <strong>"Input Baru"</strong></li>
+                                <li>Tagihan yang harus dibayarkan akan muncul pada layar konfirmasi</li>
+                                <li>Konfirmasi transaksi dan masukkan <strong>Password Transaksi</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Transaksi Anda telah selesai</li>
+                                <li>Setelah transaksi anda selesai, invoice ini akan diupdate secara otomatis. Proses ini mungkin memakan waktu hingga 5 menit</li>
+                            </ol>
+                        </div>
+                   `
+                },
+            )
+        };
+
+        if (payment_method_code == 'BCA') {
+            payment_method_instructions.push(
+                {
+                    type: 'ATM',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: TEMUKAN ATM TERDEKAT</p>
+                            <ol>
+                                <li>Masukkan <strong>Kartu ATM BCA</strong></li>
+                                <li>Masukkan <strong>PIN</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Pilih menu <strong>"Transaksi Lainnya"</strong></li>
+                                <li>Pilih menu <strong>"Transfer"</strong></li>
+                                <li>Pilih menu <strong>"ke Rekening BCA Virtual Account"</strong></li>
+                                <li>Masukkan Nomor Virtual Account Anda contoh: <strong>700701598855309526</strong>. Tekan <strong>"Benar"</strong> untuk melanjutkan</li>
+                                <li>Di halaman konfirmasi, pastikan detil pembayaran sudah sesuai seperti No VA, Nama, Perus/Produk dan Total Tagihan, tekan <strong>"Benar"</strong> untuk melanjutkan</li>
+                                <li>Tekan <strong>"Ya"</strong> jika sudah benar</li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Transaksi Anda telah selesai</li>
+                                <li>Setelah transaksi anda selesai, invoice ini akan diupdate secara otomatis. Proses ini mungkin memakan waktu hingga 5 menit</li>
+                            </ol>
+                        </div>
+                    `
+                },
+                {
+                    type: 'Internet Banking',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: MASUK KE AKUN ANDA</p>
+                            <ol>
+                                <li>Lakukan log in pada aplikasi <strong>KlikBCA Individual</strong> <a href="https://ibank.klikbca.com" target="_blank">https://ibank.klikbca.com</a></li>
+                                <li>Masukkan <strong>User ID</strong> dan <strong>PIN</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Pilih <strong>"Transfer Dana"</strong>, kemudian pilih <strong>"Transfer ke BCA Virtual Account"</strong></li>
+                                <li>Masukkan Nomor Virtual Account contoh: <strong>700701598855309526</strong></li>
+                                <li>Pilih <strong>"Lanjutkan"</strong></li>
+                                <li>Masukkan <strong>"RESPON KEYBCA APPLI 1"</strong> yang muncul pada Token BCA anda, kemudian tekan tombol <strong>"Kirim"</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Transaksi Anda telah selesai</li>
+                                <li>Setelah transaksi anda selesai, invoice ini akan diupdate secara otomatis. Proses ini mungkin memakan waktu hingga 5 menit</li>
+                            </ol>
+                        </div>
+                    `
+                },
+                {
+                    type: 'Mobile Banking',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: MASUK KE AKUN ANDA</p>
+                            <ol>
+                                <li>Buka aplikasi <strong>BCA Mobile</strong></li>
+                                <li>Pilih menu <strong>"m-BCA"</strong>, kemudian masukkan kode akses m-BCA</li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Pilih <strong>"Transaction"</strong> lalu pilih <strong>"m-Transfer"</strong>, kemudian pilih <strong>"BCA Virtual Account"</strong></li>
+                                <li>Masukkan Nomor Virtual Account anda contoh: <strong>700701598855309526</strong>, kemudian tekan <strong>"OK"</strong></li>
+                                <li>Tekan tombol <strong>"Kirim"</strong> yang berada di sudut kanan atas aplikasi untuk melakukan transfer</li>
+                                <li>Tekan <strong>"OK"</strong> untuk melanjutkan pembayaran</li>
+                                <li>Masukkan <strong>PIN</strong> Anda untuk meng-otorisasi transaksi</li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Transaksi Anda telah selesai</li>
+                                <li>Setelah transaksi anda selesai, invoice ini akan diupdate secara otomatis. Proses ini mungkin memakan waktu hingga 5 menit</li>
+                            </ol>
+                        </div>
+                    `
+                },
+            )
+        };
+
+        if (payment_method_code == 'PERMATA') {
+            payment_method_instructions.push(
+                {
+                    type: 'ATM',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: TEMUKAN ATM TERDEKAT</p>
+                            <ol>
+                                <li>Masukkan kartu <strong>ATM Permata</strong> anda</li>
+                                <li>Masukkan <strong>PIN</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Pilih menu <strong>"Transaksi Lainnya"</strong></li>
+                                <li>Pilih menu <strong>"Pembayaran"</strong></li>
+                                <li>Pilih menu <strong>"Pembayaran Lainnya"</strong></li>
+                                <li>Pilih menu <strong>"Virtual Account"</strong></li>
+                                <li>Masukkan Nomor Virtual Account <strong>contoh : 7293988549175775</strong></li>
+                                <li>Lalu pilih rekening debet yang akan digunakan</li>
+                                <li>Konfirmasi detail transaksi anda (contoh: Rekening tabungan)</li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Transaksi Anda telah selesai</li>
+                                <li>Setelah transaksi anda selesai, invoice ini akan diupdate secara otomatis. Proses ini mungkin memakan waktu hingga 5 menit</li>
+                            </ol>
+                        </div>
+                    `
+                },
+                {
+                    type: 'Internet Banking',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: MASUK KE AKUN ANDA</p>
+                            <ol>
+                                <li>Buka situs <a href="https://new.permatanet.com" target="_blank">https://new.permatanet.com</a></li>
+                                <li>Masukkan <strong>User ID</strong> dan <strong>Password</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Pilih <strong>"Pembayaran Tagihan"</strong></li>
+                                <li>Pilih <strong>"Virtual Account"</strong></li>
+                                <li>Masukkan Nomor Virtual Account <strong>contoh : 7293988549175775</strong></li>
+                                <li>Periksa kembali detail pembayaran anda</li>
+                                <li>Masukkan otentikasi transaksi/token</li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Transaksi Anda telah selesai</li>
+                                <li>Setelah transaksi anda selesai, invoice ini akan diupdate secara otomatis. Proses ini mungkin memakan waktu hingga 5 menit</li>
+                            </ol>
+                        </div>
+                    `
+                },
+                {
+                    type: 'Mobile Banking',
+                    instructions: `
+                       <div>
+                        <p>LANGKAH 1: MASUK KE AKUN ANDA</p>
+                        <ol>
+                            <li>Buka aplikasi <strong>Permata Mobile Internet</strong></li>
+                            <li>Masukkan <strong>User ID</strong> dan <strong>Password</strong></li>
+                        </ol>
+
+                        <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                        <ol>
+                            <li>Pilih <strong>"Bayar Tagihan"</strong></li>
+                            <li>Pilih <strong>"Virtual Account"</strong></li>
+                            <li>Masukkan Nomor Virtual Account Anda <strong>contoh : 7293988549175775</strong></li>
+                            <li>Masukkan otentikasi transaksi/token</li>
+                        </ol>
+
+                        <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                        <ol>
+                            <li>Transaksi Anda telah selesai</li>
+                            <li>Setelah transaksi anda selesai, invoice ini akan diupdate secara otomatis. Proses ini mungkin memakan waktu hingga 5 menit</li>
+                        </ol>
+                    </div>
+                    `
+                },
+            )
+        };
+
+        if (payment_method_code == 'BSI') {
+            payment_method_instructions.push(
+                {
+                    type: 'ATM',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: TEMUKAN ATM BSI TERDEKAT</p>
+                            <ol>
+                                <li>Masukkan kartu ATM BSI anda</li>
+                                <li>Masukkan PIN</li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Pilih menu <strong>"Pembayaran/Pembelian"</strong></li>
+                                <li>Pilih menu <strong>"Institusi"</strong></li>
+                                <li>Masukkan kode BSI VA Nomor Virtual Account <strong>Contoh: 9347xxxxxxxxxx</strong></li>
+                                <li>Detail yang ditampilkan: <strong>NIM, Nama, & Total Tagihan</strong></li>
+                                <li>Konfirmasi detail transaksi anda</li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Transaksi Anda telah selesai</li>
+                                <li>Setelah transaksi anda selesai, invoice ini akan diupdate secara otomatis. Proses ini mungkin memakan waktu hingga 5 menit</li>
+                            </ol>
+                        </div>
+                    `
+                },
+                {
+                    type: 'Internet Banking',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: MASUK KE AKUN ANDA</p>
+                            <ol>
+                                <li>Buka situs <a href="https://bsinet.bankbsi.co.id" target="_blank">https://bsinet.bankbsi.co.id</a></li>
+                                <li>Masukkan <strong>User ID</strong> dan <strong>Password</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Pilih Menu <strong>"Pembayaran"</strong></li>
+                                <li>Pilih Nomor Rekening BSI Anda</li>
+                                <li>Pilih menu <strong>"Institusi"</strong></li>
+                                <li>Masukkan nama institusi <strong>Xendit</strong> (kode <strong>9347</strong>)</li>
+                                <li>Masukkan Nomor Virtual Account tanpa diikuti kode institusi (tanpa 4 digit pertama) Contoh: <strong>988619428280</strong></li>
+                                <li>Konfirmasi detail transaksi anda</li>
+                                <li>Masukkan otentikasi transaksi/token</li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Transaksi Anda telah selesai</li>
+                                <li>Setelah transaksi anda selesai, invoice ini akan diupdate secara otomatis. Proses ini mungkin memakan waktu hingga 5 menit</li>
+                            </ol>
+                        </div>
+                    `
+                },
+                {
+                    type: 'Mobile Banking',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: MASUK KE AKUN ANDA</p>
+                            <ol>
+                                <li>Buka aplikasi <strong>BSI Mobile</strong></li>
+                                <li>Masukkan <strong>User ID</strong> dan <strong>Password</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Pilih Menu <strong>"Pembayaran"</strong></li>
+                                <li>Pilih Nomor Rekening BSI Anda</li>
+                                <li>Pilih menu <strong>"Institusi"</strong></li>
+                                <li>Masukkan nama institusi <strong>Xendit</strong> (kode <strong>9347</strong>)</li>
+                                <li>Masukkan Nomor Virtual Account tanpa diikuti kode institusi Contoh: <strong>988619428280</strong></li>
+                                <li>Konfirmasi detail transaksi anda</li>
+                                <li>Masukkan otentikasi transaksi/token</li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Transaksi Anda telah selesai</li>
+                                <li>Setelah transaksi anda selesai, invoice ini akan diupdate secara otomatis. Proses ini mungkin memakan waktu hingga 5 menit</li>
+                            </ol>
+                        </div>
+                    `
+                },
+            )
+        };
+
+        if (payment_method_code == 'BJB') {
+            payment_method_instructions.push(
+                {
+                    type: 'ATM',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: TEMUKAN ATM TERDEKAT</p>
+                            <ol>
+                                <li>Masukkan kartu ATM <strong>BJB</strong> anda</li>
+                                <li>Masukkan <strong>PIN</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Pilih menu <strong>"Transaksi Lainnya"</strong></li>
+                                <li>Pilih menu <strong>"Virtual Account"</strong></li>
+                                <li>Lalu pilih rekening debet yang akan digunakan</li>
+                                <li>Masukkan Nomor Virtual Account: <strong>1234012139123484</strong></li>
+                                <li>Konfirmasi detail transaksi anda</li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Transaksi Anda telah selesai</li>
+                                <li>Setelah transaksi anda selesai, invoice ini akan diupdate secara otomatis. Proses ini mungkin memakan waktu hingga 5 menit</li>
+                            </ol>
+                        </div>
+                    `
+                },
+                {
+                    type: 'Internet Banking',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: TEMUKAN ATM TERDEKAT</p>
+                            <ol>
+                                <li>Buka halaman <a href="https://ib.bankbjb.co.id/bjb.net" target="_blank">https://ib.bankbjb.co.id/bjb.net</a></li>
+                                <li>Masukkan <strong>User ID</strong> dan <strong>Password</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Pilih menu <strong>"Virtual Account"</strong></li>
+                                <li>Lalu pilih rekening debet yang akan digunakan</li>
+                                <li>Masukkan Nomor Virtual Account: <strong>1234012139123484</strong></li>
+                                <li>Konfirmasi detail transaksi anda</li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Transaksi Anda telah selesai</li>
+                                <li>Setelah transaksi anda selesai, invoice ini akan diupdate secara otomatis. Proses ini mungkin memakan waktu hingga 5 menit</li>
+                            </ol>
+                        </div>
+                    `
+                },
+                {
+                    type: 'Mobile Banking',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: TEMUKAN ATM TERDEKAT</p>
+                            <ol>
+                                <li>Buka aplikasi <strong>BJB Mobile</strong></li>
+                                <li>Masukkan <strong>User ID</strong> dan <strong>Password</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Pilih menu <strong>"Virtual Account"</strong></li>
+                                <li>Lalu pilih rekening debet yang akan digunakan</li>
+                                <li>Masukkan Nomor Virtual Account: <strong>1234012139123484</strong></li>
+                                <li>Konfirmasi detail transaksi anda</li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Transaksi Anda telah selesai</li>
+                                <li>Setelah transaksi anda selesai, invoice ini akan diupdate secara otomatis. Proses ini mungkin memakan waktu hingga 5 menit</li>
+                            </ol>
+                        </div>
+                    `
+                },
+            )
+        };
+
+        if (payment_method_code == 'CIMB') {
+            payment_method_instructions.push(
+                {
+                    type: 'ATM',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: TEMUKAN ATM TERDEKAT</p>
+                            <ol>
+                                <li>Masukkan kartu ATM anda</li>
+                                <li>Pilih bahasa</li>
+                                <li>Masukkan PIN ATM anda</li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Pilih menu <strong>"Transfer"</strong> dan lalu pilih <strong>"Other CIMB Niaga"</strong></li>
+                                <li>Masukkan Nomor Virtual Account Anda: <strong>9349988556620621</strong> (contoh) pada menu <strong>"Input New"</strong></li>
+                                <li>Masukkan nominal yang harus dibayarkan</li>
+                                <li>Konfirmasi transaksi dan masukkan Password Transaksi</li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Transaksi Anda telah selesai</li>
+                                <li>Setelah transaksi anda selesai, invoice ini akan diupdate secara otomatis. Proses ini mungkin memakan waktu hingga 5 menit</li>
+                            </ol>
+                        </div>
+                    `
+                },
+                {
+                    type: 'Internet Banking',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: MASUK KE AKUN ANDA</p>
+                            <ol>
+                                <li>Buka situs <a href="https://www.octoclicks.co.id/login/" target="_blank">https://www.octoclicks.co.id/login/</a></li>
+                                <li>Masukkan User ID dan Password</li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Pilih menu <strong>"Transfer"</strong> dan lalu pilih <strong>"Other CIMB Niaga"</strong></li>
+                                <li>Masukkan Nomor Virtual Account Anda: <strong>9349988556620621</strong> (contoh) pada menu <strong>"Input New"</strong></li>
+                                <li>Masukkan nominal yang harus dibayarkan</li>
+                                <li>Konfirmasi transaksi dan masukkan Password Transaksi</li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Transaksi Anda telah selesai</li>
+                                <li>Setelah transaksi anda selesai, invoice ini akan diupdate secara otomatis. Proses ini mungkin memakan waktu hingga 5 menit</li>
+                            </ol>
+                        </div>
+                    `
+                },
+                {
+                    type: 'Mobile Banking',
+                    instructions: `
+                        <div>
+                            <p>LANGKAH 1: MASUK KE AKUN ANDA</p>
+                            <ol>
+                                <li>Akses <strong>Octo Mobile</strong> melalui handphone</li>
+                                <li>Masukkan <strong>User ID</strong> dan <strong>Password</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 2: DETAIL PEMBAYARAN</p>
+                            <ol>
+                                <li>Pilih menu <strong>"Transfer"</strong> dan lalu pilih <strong>"Other CIMB Niaga"</strong></li>
+                                <li>Masukkan Nomor Virtual Account Anda: <strong>9349988556620621</strong> (contoh) pada menu <strong>"Input New"</strong></li>
+                                <li>Masukkan nominal yang harus dibayarkan</li>
+                                <li>Konfirmasi transaksi dan masukkan <strong>Password Transaksi</strong></li>
+                            </ol>
+
+                            <p>LANGKAH 3: TRANSAKSI BERHASIL</p>
+                            <ol>
+                                <li>Transaksi Anda telah selesai</li>
+                                <li>Setelah transaksi anda selesai, invoice ini akan diperbarui secara otomatis. Proses ini mungkin memakan waktu hingga <strong>5 menit</strong></li>
+                            </ol>
+                        </div>
+                    `
+                },
+            )
+        };
+
+        return payment_method_instructions;
     }
 }

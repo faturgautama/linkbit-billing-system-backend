@@ -9,7 +9,7 @@ export class AppGateway {
     @WebSocketServer() server: Server
 
     @SubscribeMessage('payment_status')
-    sendPaymentNotification(@MessageBody() token: string): void {
-        this.server.emit('get_payment_status_now', token);
+    sendPaymentNotification(@MessageBody() payload: any): void {
+        this.server.emit('get_payment_status_now', payload);
     }
 }
