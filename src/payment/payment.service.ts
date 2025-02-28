@@ -534,7 +534,7 @@ export class PaymentService {
                     'Content-Type': 'application/json'
                 },
                 data: {
-                    external_id: `${dataFromToken.invoice_number}_${new Date().getTime()}`,
+                    external_id: `${dataFromToken.invoice_number}`,
                     reference_id: dataFromToken.invoice_number,
                     type: 'DYNAMIC',
                     currency: 'IDR',
@@ -648,9 +648,33 @@ export class PaymentService {
                 }
             };
 
+            let virtualAccountXenditId = null;
+
+            if (payment.payment_method != 'QRIS') {
+                const getVirtualAccountXendit = {
+                    method: 'get',
+                    url: `${process.env.XENDIT_URL}/callback_virtual_accounts/${payment.payment_id}`,
+                    headers: {
+                        'Authorization': `Basic ${Buffer.from(`${settingCompany.api_key_pg}:`).toString('base64')}`
+                    },
+                };
+
+                const getVirtualAccountXenditResult = await firstValueFrom(this._axiosService.onAxiosRequest(getVirtualAccountXendit));
+
+                if (!getVirtualAccountXenditResult.status) {
+                    return {
+                        status: false,
+                        message: 'Payment Not Found',
+                        data: null
+                    }
+                }
+
+                virtualAccountXenditId = getVirtualAccountXenditResult.data.external_id;
+            }
+
             const simulatePaymentVirtualAccountParams = {
                 method: 'post',
-                url: `${process.env.XENDIT_URL}/callback_virtual_accounts/external_id=${payment.payment_id}/simulate_payment`,
+                url: `${process.env.XENDIT_URL}/callback_virtual_accounts/external_id=${virtualAccountXenditId}/simulate_payment`,
                 headers: {
                     'Authorization': `Basic ${Buffer.from(`${settingCompany.api_key_pg}:`).toString('base64')}`
                 },
