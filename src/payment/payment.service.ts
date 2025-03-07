@@ -727,6 +727,25 @@ export class PaymentService {
                 }
             };
 
+            const updateInvoice = await this._prismaService
+                .invoice
+                .update({
+                    where: {
+                        id_invoice: parseInt(updatePayment.id_invoice as any),
+                    },
+                    data: {
+                        invoice_status: 'PAID',
+                    }
+                });
+
+            if (!updateInvoice) {
+                return {
+                    status: false,
+                    message: 'Update Status Invoice Failed',
+                    data: null
+                }
+            };
+
             this._appGateway.sendPaymentNotification({ token: updatePayment.payment_token });
 
             return {
@@ -789,6 +808,25 @@ export class PaymentService {
                 return {
                     status: false,
                     message: 'Update Status Payment Failed',
+                    data: null
+                }
+            };
+
+            const updateInvoice = await this._prismaService
+                .invoice
+                .update({
+                    where: {
+                        id_invoice: parseInt(updatePayment.id_invoice as any),
+                    },
+                    data: {
+                        invoice_status: 'PAID',
+                    }
+                });
+
+            if (!updateInvoice) {
+                return {
+                    status: false,
+                    message: 'Update Status Invoice Failed',
                     data: null
                 }
             };

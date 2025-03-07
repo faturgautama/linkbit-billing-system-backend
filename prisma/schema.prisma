@@ -71,7 +71,7 @@ model user_group_menu {
 }
 
 model setting_company {
-    id_setting_company     Int         @id @default(autoincrement())
+    id_setting_company     Int                    @id @default(autoincrement())
     company_name           String
     company_email          String
     company_short_name     String
@@ -93,12 +93,13 @@ model setting_company {
     create_by              Int
     update_at              DateTime?
     update_by              Int?
-    is_active              Boolean     @default(true)
-    is_mitra               Boolean     @default(false)
-    is_cabang              Boolean     @default(false)
+    is_active              Boolean                @default(true)
+    is_mitra               Boolean                @default(false)
+    is_cabang              Boolean                @default(false)
     api_key_pg             String?
     pelanggan              pelanggan[]
     user                   user[]
+    log_whatsapp_message   log_whatsapp_message[]
 }
 
 model product {
@@ -226,4 +227,15 @@ model payment {
     create_by        Int
     update_at        DateTime?
     update_by        Int?
+}
+
+model log_whatsapp_message {
+    id_log_whatsapp_message Int             @id @default(autoincrement())
+    id_transaksi            Int
+    setting_company         setting_company @relation(fields: [id_setting_company], references: [id_setting_company])
+    id_setting_company      Int
+    additional_info         Json?
+    sent_at                 DateTime
+    sent_by                 Int
+    status                  String          @default("SUCCESS")
 }

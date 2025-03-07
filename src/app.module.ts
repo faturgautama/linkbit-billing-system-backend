@@ -70,6 +70,7 @@ import { AppGateway } from './app.gateway';
         PaymentService,
         AxiosService,
         ImageHelperService,
+        UtilityService,
         AppGateway,
     ],
 })

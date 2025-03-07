@@ -1,14 +1,19 @@
 import { HttpException, HttpStatus, Injectable, Scope } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { InvoiceModel } from './invoice.model';
-import { Request, Response } from 'express';
+import { Request } from 'express';
 import { SettingCompanyService } from 'src/setting-company/setting-company.service';
+import { firstValueFrom } from 'rxjs';
+import { AxiosService } from 'src/utility/axios.service';
+import { UtilityService } from 'src/utility/utility.service';
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class InvoiceService {
 
     constructor(
+        private _axiosService: AxiosService,
         private _prismaService: PrismaService,
+        private _utilityService: UtilityService,
         private _settingCompanyService: SettingCompanyService,
     ) { }
 
@@ -372,4 +377,115 @@ export class InvoiceService {
             );
         }
     }
+
+    async sendMessage(id_invoice: any): Promise<any> {
+        try {
+            const invoice = await this._prismaService
+                .invoice
+                .findUnique({
+                    where: {
+                        id_invoice: parseInt(id_invoice)
+                    },
+                    include: {
+                        pelanggan: {
+                            include: {
+                                setting_company: true
+                            }
+                        },
+                        product: true,
+                    }
+                });
+
+            const token = this._utilityService.onEncrypt(JSON.stringify(id_invoice));
+
+            const messageVariable = {
+                full_name: invoice.pelanggan.full_name,
+                pelanggan_code: invoice.pelanggan.pelanggan_code,
+                product_name: invoice.product.product_name,
+                invoice_date: this._utilityService.onFormatDate(new Date(invoice.invoice_date), 'MMM yyyy'),
+                invoice_number: invoice.invoice_number,
+                total: this._utilityService.onFormatCurrency(invoice.total),
+                checkout_url: `${process.env.CHECKOUT_URL}?token=${token}`,
+            }
+
+            const template = invoice.pelanggan.setting_company.tagihan_pesan_invoice;
+            const newTemplate = template.replace(/\${(.*?)}/g, (_, key) => messageVariable[key.trim()] || "");
+            const messageText = newTemplate
+                .replace(/<\/p>\s*<p>/g, '\n') // Replace consecutive <p> tags with a single line break
+                .replace(/<\/?[^>]+(>|$)/g, "") // Remove any remaining HTML tags
+                .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces with normal spaces
+                .replace(/&gt;/g, '>') // Replace `&gt;` with `>`
+                .replace(/&lt;/g, '<') // Replace `&lt;` with `<`
+                .replace(/&amp;/g, '&') // Replace `&amp;` with `&`
+                .trim(); // Remove any leading or trailing spaces
+
+            const payloadSendMessageMpwa = {
+                method: 'get',
+                url: `${process.env.MPWA_URL}/send-message`,
+                params: {
+                    api_key: `KVypyzJ0xqMVCnDIgvh8a2HKZGXK1V`,
+                    sender: invoice.pelanggan.setting_company.company_whatsapp,
+                    number: invoice.pelanggan.whatsapp,
+                    message: messageText,
+                }
+            };
+
+            const mpwaSendMessageResult = await firstValueFrom(this._axiosService.onAxiosRequest(payloadSendMessageMpwa));
+
+            if (!mpwaSendMessageResult.status) {
+                await this._prismaService
+                    .log_whatsapp_message
+                    .create({
+                        data: {
+                            id_transaksi: invoice.id_invoice,
+                            id_setting_company: invoice.pelanggan.id_setting_company,
+                            additional_info: invoice,
+                            sent_at: new Date(),
+                            sent_by: invoice.create_by,
+                            status: 'FAILED'
+                        }
+                    })
+
+                return {
+                    status: false,
+                    message: mpwaSendMessageResult.data.msg,
+                }
+            }
+
+            await this._prismaService
+                .log_whatsapp_message
+                .create({
+                    data: {
+                        id_transaksi: invoice.id_invoice,
+                        id_setting_company: invoice.pelanggan.id_setting_company,
+                        additional_info: invoice,
+                        sent_at: new Date(),
+                        sent_by: invoice.create_by,
+                        status: 'SUCCESS'
+                    }
+                })
+
+            return {
+                status: true,
+                message: 'Pesan berhasil dikirimkan',
+                data: id_invoice,
+            };
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
 }

@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
+import * as moment from 'moment';
+import 'moment/locale/id';
+import * as numeral from 'numeral';
 
 @Injectable()
 export class UtilityService {
@@ -28,5 +31,14 @@ export class UtilityService {
         let decrypted = decipher.update(encrypted, 'hex', 'utf8');
         decrypted += decipher.final('utf8');
         return decrypted;
+    }
+
+    onFormatDate(date: Date, format?: string): any {
+        moment.locale('id');
+        return format ? moment(date).format(format) : moment(date).format('yyyy-mm-DD HH:mm:ss');
+    }
+
+    onFormatCurrency(number: any): any {
+        return `Rp${numeral(number).format('0,0.00')}`;
     }
 }
