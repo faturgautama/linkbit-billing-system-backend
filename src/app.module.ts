@@ -31,6 +31,10 @@ import { AxiosService } from './utility/axios.service';
 import { HttpModule, HttpService } from '@nestjs/axios';
 import { ImageHelperService } from './utility/image-helper.service';
 import { AppGateway } from './app.gateway';
+import { DashboardController } from './dashboard/dashboard.controller';
+import { DashboardService } from './dashboard/dashboard.service';
+import { LaporanController } from './laporan/laporan.controller';
+import { LaporanService } from './laporan/laporan.service';
 
 @Module({
     imports: [
@@ -52,6 +56,8 @@ import { AppGateway } from './app.gateway';
         PelangganController,
         InvoiceController,
         PaymentController,
+        DashboardController,
+        LaporanController,
     ],
     providers: [
         JwtStrategy,
@@ -68,6 +74,8 @@ import { AppGateway } from './app.gateway';
         PelangganService,
         InvoiceService,
         PaymentService,
+        DashboardService,
+        LaporanService,
         AxiosService,
         ImageHelperService,
         UtilityService,

@@ -100,6 +100,7 @@ model setting_company {
     pelanggan              pelanggan[]
     user                   user[]
     log_whatsapp_message   log_whatsapp_message[]
+    tagihan_kso            tagihan_kso[]
 }
 
 model product {
@@ -227,6 +228,25 @@ model payment {
     create_by        Int
     update_at        DateTime?
     update_by        Int?
+}
+
+model tagihan_kso {
+    id_tagihan_kso     Int             @id @default(autoincrement())
+    no_tagihan_kso     String
+    periode            DateTime
+    setting_company    setting_company @relation(fields: [id_setting_company], references: [id_setting_company])
+    id_setting_company Int
+    jumlah_pelanggan   Int             @default(0)
+    jumlah_pemasukan   Float           @default(0)
+    total_bhp_uso      Float           @default(0)
+    total_pph_final    Float           @default(0)
+    total_kso          Float           @default(0)
+    total_tagihan      Float           @default(0)
+    status_bayar       String          @default("PENDING")
+    create_at          DateTime        @default(now())
+    create_by          Int
+    update_at          DateTime?
+    update_by          Int?
 }
 
 model log_whatsapp_message {

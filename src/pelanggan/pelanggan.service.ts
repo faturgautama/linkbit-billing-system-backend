@@ -65,13 +65,13 @@ export class PelangganService {
                         }
                     });
 
-                item.id_pelanggan_product = product_pelanggan.id_pelanggan_product;
-                item.product_id = product_pelanggan.product.id_product;
-                item.product_name = product_pelanggan.product.product_name;
-                item.product_start_date = product_pelanggan.start_date;
-                item.product_price = product_pelanggan.price;
-                item.product_days_before_send_invoice = product_pelanggan.days_before_send_invoice;
-                item.product_invoice_cycle = product_pelanggan.invoice_cycle;
+                item.id_pelanggan_product = product_pelanggan ? product_pelanggan.id_pelanggan_product : null;
+                item.product_id = product_pelanggan ? product_pelanggan.product.id_product : null;
+                item.product_name = product_pelanggan ? product_pelanggan.product.product_name : null;
+                item.product_start_date = product_pelanggan ? product_pelanggan.start_date : null;
+                item.product_price = product_pelanggan ? product_pelanggan.price : null;
+                item.product_days_before_send_invoice = product_pelanggan ? product_pelanggan.days_before_send_invoice : null;
+                item.product_invoice_cycle = product_pelanggan ? product_pelanggan.invoice_cycle : null;
 
                 pelangganArr.push(item);
             }
@@ -149,6 +149,8 @@ export class PelangganService {
             }
 
         } catch (error) {
+            console.log("error =>", error);
+
             const status = error.message.includes('not found')
                 ? HttpStatus.NOT_FOUND
                 : error.message.includes('bad request')
@@ -261,6 +263,7 @@ export class PelangganService {
             }
 
         } catch (error) {
+            console.log("error create / update pelanggan product =>", error);
             const status = error.message.includes('not found')
                 ? HttpStatus.NOT_FOUND
                 : error.message.includes('bad request')

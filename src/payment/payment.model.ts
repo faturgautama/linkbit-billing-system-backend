@@ -30,8 +30,9 @@ export namespace PaymentModel {
         id_setting_company?: string;
         id_pelanggan?: string;
         id_product?: string;
-        invoice_number?: string;
+        payment_number?: string;
         invoice_date?: string;
+        payment_method?: string;
     }
 
     export class GetAllPayment {

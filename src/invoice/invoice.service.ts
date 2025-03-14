@@ -163,6 +163,8 @@ export class InvoiceService {
 
     async getById(id_invoice: number): Promise<InvoiceModel.GetByIdInvoice> {
         try {
+            console.log("invoice =>", id_invoice);
+
             let res: any = await this._prismaService
                 .invoice
                 .findUnique({
@@ -228,6 +230,8 @@ export class InvoiceService {
             }
 
         } catch (error) {
+            console.log("error =>", error);
+
             const status = error.message.includes('not found')
                 ? HttpStatus.NOT_FOUND
                 : error.message.includes('bad request')

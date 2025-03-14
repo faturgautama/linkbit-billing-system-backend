@@ -49,8 +49,8 @@ export class AuthenticationController {
     }
 
     @Post('register')
-    @UseGuards(JwtGuard)
-    @ApiBearerAuth('token')
+    // @UseGuards(JwtGuard)
+    // @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: AuthenticationModel.Login })
     async register(@Body() body: AuthenticationModel.IRegisterPayload, @Req() req: Request, @Res() res: Response): Promise<any> {
         try {

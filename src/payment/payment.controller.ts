@@ -84,6 +84,22 @@ export class PaymentController {
         }
     }
 
+    @Get('get-all-payment-method-for-internal')
+    @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetAllPaymentMethod })
+    async getAllPaymentMethodForInternal(@Req() req: Request, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._paymentService.getPaymentMethodForInternal(req);
+            return res.status(HttpStatus.OK).json(data);
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
+
     @Get('get-all-payment-method/:token')
     @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetAllPaymentMethod })
     async getAllPaymentMethod(@Param('token') token: string, @Res() res: Response): Promise<any> {
@@ -170,4 +186,22 @@ export class PaymentController {
         }
     }
 
+    @Get('send-message/:id_payment')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetByIdPayment })
+    async callback(@Param('id_payment') id_payment: number, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._paymentService.sendMessage(id_payment);
+            return res.status(HttpStatus.OK).json(data);
+
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
 }

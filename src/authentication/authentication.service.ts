@@ -231,6 +231,8 @@ export class AuthenticationService {
             };
 
         } catch (error) {
+            console.log("error =>", error);
+
             const status = error.message.includes('not found')
                 ? HttpStatus.NOT_FOUND
                 : error.message.includes('bad request')

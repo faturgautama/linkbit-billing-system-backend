@@ -246,7 +246,7 @@ export class PaymentService {
                 }
             }
 
-            const token = this._utilityService.onEncrypt(JSON.stringify(invoice.data.id_invoice));
+            const token = this._utilityService.onEncrypt(JSON.stringify({ id_invoice: invoice.data.id_invoice }));
 
             return {
                 status: true,
@@ -283,16 +283,28 @@ export class PaymentService {
                 }
             };
 
-            let invoice = await this._invoiceService.getById(parseInt(data));
+            console.log("data =>", data);
+
+            let invoice = await this._invoiceService.getById(parseInt(data.id_invoice ? data.id_invoice : data));
 
             const checkIsPaymentExist = await this._prismaService
                 .payment
                 .findFirst({
                     where: {
-                        id_invoice: parseInt(data)
+                        id_invoice: parseInt(data.id_invoice ? data.id_invoice : data)
+                    },
+                    include: {
+                        invoice: {
+                            include: {
+                                pelanggan: {
+                                    include: {
+                                        setting_company: true
+                                    }
+                                }
+                            }
+                        }
                     }
                 });
-
 
             if (!checkIsPaymentExist) {
                 return {
@@ -300,13 +312,111 @@ export class PaymentService {
                     data: { ...invoice.data, payment: null, is_payment_generated: false },
                     message: ''
                 }
-            } else {
+            };
+
+            const checkExpiredXenditPayload = {
+                method: 'get',
+                url: `${process.env.XENDIT_URL}/callback_virtual_accounts/payment_id=${checkIsPaymentExist.payment_id}`,
+                headers: {
+                    'Authorization': `Basic ${Buffer.from(`${checkIsPaymentExist.invoice.pelanggan.setting_company.api_key_pg}:`).toString('base64')}`
+                }
+            };
+
+            const checkExpiredXendit = await firstValueFrom(this._axiosService.onAxiosRequest(checkExpiredXenditPayload));
+
+            if (!checkExpiredXendit.status) {
                 return {
-                    status: true,
-                    data: { ...invoice.data, payment: checkIsPaymentExist, is_payment_generated: true, },
-                    message: ''
+                    status: false,
+                    message: 'Payment Not Found',
+                    data: null
                 }
             }
+
+            console.log("va xendit =>", checkExpiredXendit)
+
+            return {
+                status: true,
+                data: { ...invoice.data, payment: checkIsPaymentExist, is_payment_generated: true, },
+                message: ''
+            }
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
+    // ** Get Payment Method For Internal
+    async getPaymentMethodForInternal(req: Request): Promise<PaymentModel.GetAllPayment> {
+        try {
+            const settingCompany = await this._prismaService
+                .setting_company
+                .findUnique({
+                    where: {
+                        id_setting_company: parseInt(req['user']['id_setting_company'])
+                    }
+                });
+
+            if (!settingCompany) {
+                return {
+                    status: false,
+                    message: 'Setting Company Not Found',
+                    data: null
+                }
+            };
+
+            const params = {
+                method: 'get',
+                url: `${process.env.XENDIT_URL}/available_virtual_account_banks`,
+                headers: {
+                    'Authorization': `Basic ${Buffer.from(`${settingCompany.api_key_pg}:`).toString('base64')}`
+                },
+            };
+
+            return await firstValueFrom(
+                this._axiosService
+                    .onAxiosRequest(params)
+                    .pipe(
+                        map((result) => {
+                            result.data = result.data.filter((item: any) => {
+                                if (item.country == 'ID' && item.currency == 'IDR' && item.is_activated && item.code.toLowerCase() != 'sahabat_sampoerna') {
+                                    return item;
+                                }
+                            });
+
+                            let newData = [
+                                {
+                                    payment_method_type: 'QRIS',
+                                    payment_method_name: 'QRIS',
+                                    payment_method_code: 'QRIS',
+                                },
+                                ...result.data.map((item: any) => {
+                                    return {
+                                        payment_method_type: 'Virtual Account',
+                                        payment_method_name: item.name,
+                                        payment_method_code: item.code,
+                                    }
+                                })
+                            ];
+
+                            return {
+                                ...result,
+                                data: newData
+                            };
+                        })
+                    )
+            );
 
         } catch (error) {
             const status = error.message.includes('not found')
@@ -338,7 +448,7 @@ export class PaymentService {
                 }
             };
 
-            const invoice = await this._invoiceService.getById(parseInt(decryptedData));
+            const invoice = await this._invoiceService.getById(parseInt(decryptedData.id_invoice));
 
             if (!invoice.status) {
                 return {
@@ -460,7 +570,7 @@ export class PaymentService {
                 }
             };
 
-            const invoice = await this._invoiceService.getById(parseInt(decryptedData));
+            const invoice = await this._invoiceService.getById(parseInt(decryptedData.id_invoice));
 
             if (!invoice.status) {
                 return {
@@ -827,6 +937,16 @@ export class PaymentService {
                 return {
                     status: false,
                     message: 'Update Status Invoice Failed',
+                    data: null
+                }
+            };
+
+            const sendMessage = await this.sendMessage(payment.id_payment);
+
+            if (!sendMessage.status) {
+                return {
+                    status: false,
+                    message: 'Gagal Mengirimkan Pesan Lunas',
                     data: null
                 }
             };
@@ -1585,5 +1705,125 @@ export class PaymentService {
         };
 
         return payment_method_instructions;
+    }
+
+    async sendMessage(id_payment: any): Promise<any> {
+        try {
+            const payment = await this._prismaService
+                .payment
+                .findUnique({
+                    where: {
+                        id_payment: parseInt(id_payment as any)
+                    }
+                })
+
+            const invoice = await this._prismaService
+                .invoice
+                .findUnique({
+                    where: {
+                        id_invoice: parseInt(payment.id_invoice as any)
+                    },
+                    include: {
+                        pelanggan: {
+                            include: {
+                                setting_company: true
+                            }
+                        },
+                        product: true,
+                    }
+                });
+
+            const token = this._utilityService.onEncrypt(JSON.stringify(payment.id_invoice));
+
+            const messageVariable = {
+                full_name: invoice.pelanggan.full_name,
+                pelanggan_code: invoice.pelanggan.pelanggan_code,
+                product_name: invoice.product.product_name,
+                invoice_date: this._utilityService.onFormatDate(new Date(invoice.invoice_date), 'MMM yyyy'),
+                invoice_number: invoice.invoice_number,
+                total: this._utilityService.onFormatCurrency(invoice.total),
+                invoice_url: `${process.env.CHECKOUT_URL}/paid?token=${token}`,
+            };
+
+            const template = invoice.pelanggan.setting_company.tagihan_pesan_lunas;
+
+            const newTemplate = template.replace(/\${(.*?)}/g, (_, key) => messageVariable[key.trim()] || "");
+
+            const messageText = newTemplate
+                .replace(/<\/p>\s*<p>/g, '\n') // Replace consecutive <p> tags with a single line break
+                .replace(/<\/?[^>]+(>|$)/g, "") // Remove any remaining HTML tags
+                .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces with normal spaces
+                .replace(/&gt;/g, '>') // Replace `&gt;` with `>`
+                .replace(/&lt;/g, '<') // Replace `&lt;` with `<`
+                .replace(/&amp;/g, '&') // Replace `&amp;` with `&`
+                .trim(); // Remove any leading or trailing spaces
+
+            const payloadSendMessageMpwa = {
+                method: 'get',
+                url: `${process.env.MPWA_URL}/send-message`,
+                params: {
+                    api_key: `KVypyzJ0xqMVCnDIgvh8a2HKZGXK1V`,
+                    sender: invoice.pelanggan.setting_company.company_whatsapp,
+                    number: invoice.pelanggan.whatsapp,
+                    message: messageText,
+                }
+            };
+
+            const mpwaSendMessageResult = await firstValueFrom(this._axiosService.onAxiosRequest(payloadSendMessageMpwa));
+
+            if (!mpwaSendMessageResult.status) {
+                await this._prismaService
+                    .log_whatsapp_message
+                    .create({
+                        data: {
+                            id_transaksi: payment.id_payment,
+                            id_setting_company: invoice.pelanggan.id_setting_company,
+                            additional_info: payment,
+                            sent_at: new Date(),
+                            sent_by: payment.create_by,
+                            status: 'FAILED'
+                        }
+                    })
+
+                return {
+                    status: false,
+                    message: mpwaSendMessageResult.data.msg,
+                }
+            }
+
+            await this._prismaService
+                .log_whatsapp_message
+                .create({
+                    data: {
+                        id_transaksi: payment.id_payment,
+                        id_setting_company: invoice.pelanggan.id_setting_company,
+                        additional_info: payment,
+                        sent_at: new Date(),
+                        sent_by: payment.create_by,
+                        status: 'SUCCESS'
+                    }
+                })
+
+            return {
+                status: true,
+                message: 'Pesan lunas berhasil dikirimkan',
+                data: id_payment,
+            };
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
     }
 }

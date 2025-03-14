@@ -25,12 +25,12 @@ export class UtilityService {
         return `${this.iv.toString('hex')}:${encrypted}`; // Store IV with encrypted data
     }
 
-    onDecrypt(token: string): string {
+    onDecrypt(token: string): any {
         const [ivHex, encrypted] = token.split(':');
         const decipher = crypto.createDecipheriv('aes-256-cbc', this.secretKey, Buffer.from(ivHex, 'hex'));
         let decrypted = decipher.update(encrypted, 'hex', 'utf8');
         decrypted += decipher.final('utf8');
-        return decrypted;
+        return JSON.parse(decrypted);
     }
 
     onFormatDate(date: Date, format?: string): any {
