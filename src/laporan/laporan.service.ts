@@ -39,7 +39,7 @@ export class LaporanService {
             let res: any[] =
                 dates,
                 queries: any = {
-                    create_at: {
+                    invoice_date: {
                         gte: `${start_date}T00:00:00.000Z`,
                         lte: `${end_date}T23:59:59.999Z`,
                     }
@@ -120,7 +120,7 @@ export class LaporanService {
             const end_date = format(endOfMonth(new Date(query.date)), 'yyyy-MM-dd');
 
             let queries: any = {
-                create_at: {
+                invoice_date: {
                     gte: `${start_date}T00:00:00.000Z`,
                     lte: `${end_date}T23:59:59.999Z`,
                 }
@@ -541,26 +541,28 @@ export class LaporanService {
                         };
                     }
                 } else {
-                    let updateTagihanKso = await this._prismaService
-                        .tagihan_kso
-                        .update({
-                            where: {
-                                id_tagihan_kso: parseInt(getTagihanKso.id_tagihan_kso as any),
-                            },
-                            data: {
-                                ...payload,
-                                no_tagihan_kso: this._utilityService.onFormatDate(new Date(), 'DD/MM/yyyy HH:mm'),
-                                create_at: new Date(),
-                                create_by: req['user']['id_user']
-                            }
-                        });
+                    if (getTagihanKso.status_bayar == 'PENDING') {
+                        let updateTagihanKso = await this._prismaService
+                            .tagihan_kso
+                            .update({
+                                where: {
+                                    id_tagihan_kso: parseInt(getTagihanKso.id_tagihan_kso as any),
+                                },
+                                data: {
+                                    ...payload,
+                                    no_tagihan_kso: this._utilityService.onFormatDate(new Date(), 'DD/MM/yyyy HH:mm'),
+                                    create_at: new Date(),
+                                    create_by: req['user']['id_user']
+                                }
+                            });
 
-                    if (!updateTagihanKso) {
-                        return {
-                            status: false,
-                            message: '',
-                            data: 'Gagal Update Tagihan KSO Mitra'
-                        };
+                        if (!updateTagihanKso) {
+                            return {
+                                status: false,
+                                message: '',
+                                data: 'Gagal Update Tagihan KSO Mitra'
+                            };
+                        }
                     }
                 }
             }
@@ -627,20 +629,20 @@ export class LaporanService {
         }
     }
 
-    async updateTagihanKsoMitra(req: Request, payload: LaporanModel.IUpdateTagihanKsoMitra): Promise<any> {
+    async updateTagihanKsoMitra(req: Request, id_tagihan_kso: string): Promise<any> {
         try {
-            const { id_tagihan_kso, ...data } = payload;
-
             let res = await this._prismaService
                 .tagihan_kso
                 .update({
                     where: { id_tagihan_kso: parseInt(id_tagihan_kso as any) },
                     data: {
-                        ...data,
+                        status_bayar: 'PAID',
                         update_at: new Date(),
                         update_by: parseInt(req['user']['id_user'] as any)
                     }
-                })
+                });
+
+            console.log("result update =>", res);
 
             return {
                 status: true,
@@ -649,6 +651,7 @@ export class LaporanService {
             }
 
         } catch (error) {
+            console.log("error =>", error);
             const status = error.message.includes('not found')
                 ? HttpStatus.NOT_FOUND
                 : error.message.includes('bad request')

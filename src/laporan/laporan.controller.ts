@@ -103,13 +103,13 @@ export class LaporanController {
         }
     }
 
-    @Put('tagihan-kso-mitra')
+    @Put('tagihan-kso-mitra/update-paid/:id_tagihan_kso')
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: LaporanModel.GetDetailPembayaranBulanan })
-    async updateTagihanKsoMitra(@Body() body: LaporanModel.IUpdateTagihanKsoMitra, @Req() req: Request, @Res() res: Response): Promise<any> {
+    async updateTagihanKsoMitra(@Param('id_tagihan_kso') id_tagihan_kso: string, @Req() req: Request, @Res() res: Response): Promise<any> {
         try {
-            const data = await this._laporanService.updateTagihanKsoMitra(req, body);
+            const data = await this._laporanService.updateTagihanKsoMitra(req, id_tagihan_kso);
             return res.status(HttpStatus.OK).json(data);
         } catch (error) {
             const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
