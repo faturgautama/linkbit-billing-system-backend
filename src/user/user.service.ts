@@ -164,7 +164,16 @@ export class UserService {
                 .update({
                     where: { id_user: parseInt(id_user as any) },
                     data: {
-                        ...data,
+                        id_setting_company: data.id_setting_company,
+                        id_user_group: data.id_user_group,
+                        username: data.username,
+                        full_name: data.full_name,
+                        email: data.email,
+                        address: data.address,
+                        phone: data.phone,
+                        whatsapp: data.whatsapp,
+                        notes: data.notes,
+                        is_active: data.is_active,
                         update_at: new Date(),
                         update_by: parseInt(req['user']['id_user'] as any)
                     }

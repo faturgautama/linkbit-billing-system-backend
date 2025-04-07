@@ -283,8 +283,6 @@ export class PaymentService {
                 }
             };
 
-            console.log("data =>", data);
-
             let invoice = await this._invoiceService.getById(parseInt(data.id_invoice ? data.id_invoice : data));
 
             const checkIsPaymentExist = await this._prismaService
@@ -1811,18 +1809,12 @@ export class PaymentService {
             };
 
         } catch (error) {
-            const status = error.message.includes('not found')
-                ? HttpStatus.NOT_FOUND
-                : error.message.includes('bad request')
-                    ? HttpStatus.BAD_REQUEST
-                    : HttpStatus.INTERNAL_SERVER_ERROR;
-
             throw new HttpException(
                 {
                     status: false,
-                    message: error.message
+                    message: error.response.data.msg
                 },
-                status
+                HttpStatus.BAD_REQUEST
             );
         }
     }

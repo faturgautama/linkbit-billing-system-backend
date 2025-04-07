@@ -28,13 +28,13 @@ export class InvoiceService {
 
             if (setting_company.status) {
                 // ** Queries id_setting_company for main office
-                if (!setting_company.data.is_cabang && !setting_company.data.is_mitra) {
-                    if (query.id_setting_company) {
-                        queries.pelanggan = {
-                            id_setting_company: parseInt(query.id_setting_company)
-                        }
-                    }
-                };
+                // if (!setting_company.data.is_cabang && !setting_company.data.is_mitra) {
+                //     if (query.id_setting_company) {
+                //         queries.pelanggan = {
+                //             id_setting_company: parseInt(query.id_setting_company)
+                //         }
+                //     }
+                // };
 
                 // ** Queries id_setting_company
                 if (setting_company.data.is_cabang || setting_company.data.is_mitra) {
@@ -52,7 +52,7 @@ export class InvoiceService {
                             aggregate[property] = false;
                         };
 
-                        if (property == 'id_invoice' || property == 'id_product' || property == 'id_setting_company') {
+                        if (property == 'id_invoice' || property == 'id_product' || property == 'id_setting_company' || property == 'id_pelanggan') {
                             aggregate[property] = parseInt(queries[property] as any);
                         };
 
@@ -163,8 +163,6 @@ export class InvoiceService {
 
     async getById(id_invoice: number): Promise<InvoiceModel.GetByIdInvoice> {
         try {
-            console.log("invoice =>", id_invoice);
-
             let res: any = await this._prismaService
                 .invoice
                 .findUnique({
@@ -436,6 +434,8 @@ export class InvoiceService {
 
             const mpwaSendMessageResult = await firstValueFrom(this._axiosService.onAxiosRequest(payloadSendMessageMpwa));
 
+            console.log("result send wa =>", mpwaSendMessageResult);
+
             if (!mpwaSendMessageResult.status) {
                 await this._prismaService
                     .log_whatsapp_message
@@ -476,18 +476,12 @@ export class InvoiceService {
             };
 
         } catch (error) {
-            const status = error.message.includes('not found')
-                ? HttpStatus.NOT_FOUND
-                : error.message.includes('bad request')
-                    ? HttpStatus.BAD_REQUEST
-                    : HttpStatus.INTERNAL_SERVER_ERROR;
-
             throw new HttpException(
                 {
                     status: false,
-                    message: error.message
+                    message: error.response.data.msg
                 },
-                status
+                HttpStatus.BAD_REQUEST
             );
         }
     }

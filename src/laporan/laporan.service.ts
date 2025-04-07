@@ -611,8 +611,6 @@ export class LaporanService {
             };
 
         } catch (error) {
-            console.log("error =>", error)
-
             const status = error.message.includes('not found')
                 ? HttpStatus.NOT_FOUND
                 : error.message.includes('bad request')
@@ -631,18 +629,25 @@ export class LaporanService {
 
     async updateTagihanKsoMitra(req: Request, id_tagihan_kso: string): Promise<any> {
         try {
+            const tagihanKso = await this._prismaService
+                .tagihan_kso
+                .findFirst({
+                    where: { id_tagihan_kso: parseInt(id_tagihan_kso as any) },
+                    select: {
+                        status_bayar: true
+                    }
+                });
+
             let res = await this._prismaService
                 .tagihan_kso
                 .update({
                     where: { id_tagihan_kso: parseInt(id_tagihan_kso as any) },
                     data: {
-                        status_bayar: 'PAID',
+                        status_bayar: tagihanKso.status_bayar == 'PENDING' ? 'PAID' : 'PENDING',
                         update_at: new Date(),
                         update_by: parseInt(req['user']['id_user'] as any)
                     }
                 });
-
-            console.log("result update =>", res);
 
             return {
                 status: true,

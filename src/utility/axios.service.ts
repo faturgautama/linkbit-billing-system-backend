@@ -32,7 +32,7 @@ export class AxiosService {
                     data: result.data
                 };
             }),
-            catchError((error: AxiosError) => {
+            catchError((error: any) => {
                 console.log("======================================================");
                 console.log("http request url =>", axiosConfig.url);
                 console.log("http request data =>", axiosConfig.params);

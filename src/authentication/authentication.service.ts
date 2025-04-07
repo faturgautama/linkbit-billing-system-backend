@@ -188,6 +188,8 @@ export class AuthenticationService {
         try {
             let data = null, isUserExist = null;
 
+            console.log("req =>", req['user']);
+
             isUserExist = await this._prismaService.user.findFirst({
                 where: {
                     username: payload.username
