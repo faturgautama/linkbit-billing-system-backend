@@ -24,6 +24,11 @@ export namespace InvoiceModel {
         due_date: Date;
         notes?: string;
         invoice_status: string;
+        id_payment: number;
+        payment_date: Date;
+        payment_status: string;
+        payment_method: string;
+        payment_amount: number;
         create_at: Date;
         create_by: number;
         update_at: Date;

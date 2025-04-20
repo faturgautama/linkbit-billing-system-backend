@@ -26,6 +26,7 @@ export namespace SettingCompanyModel {
         is_mitra: boolean;
         is_cabang: boolean;
         api_key_pg: string;
+        api_key_wa: string;
     }
 
     export class ISettingCompanyQuery {
@@ -68,6 +69,7 @@ export namespace SettingCompanyModel {
         is_mitra: boolean;
         is_cabang: boolean;
         api_key_pg: string;
+        api_key_wa: string;
     }
 
     export class UpdateSettingCompany {
@@ -93,5 +95,6 @@ export namespace SettingCompanyModel {
         is_mitra: boolean;
         is_cabang: boolean;
         api_key_pg: string;
+        api_key_wa: string;
     }
 }

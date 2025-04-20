@@ -35,6 +35,7 @@ import { DashboardController } from './dashboard/dashboard.controller';
 import { DashboardService } from './dashboard/dashboard.service';
 import { LaporanController } from './laporan/laporan.controller';
 import { LaporanService } from './laporan/laporan.service';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
     imports: [
@@ -43,6 +44,7 @@ import { LaporanService } from './laporan/laporan.service';
             secret: jwtConstants.secret
         }),
         HttpModule,
+        ScheduleModule.forRoot(),
     ],
     controllers: [
         AuthenticationController,

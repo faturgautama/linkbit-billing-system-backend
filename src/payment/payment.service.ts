@@ -30,13 +30,20 @@ export class PaymentService {
                 is_deleted: false
             };
 
+            let newQueries: any = Object.keys(queries).reduce((aggregate, property) => {
+                if (property == 'id_pelanggan' || property == 'id_product') {
+                    aggregate[property] = parseInt(queries[property] as any);
+                }
+                return aggregate;
+            }, {})
+
             const setting_company = await this._settingCompanyService.getById(parseInt(req['user']['id_setting_company']));
 
             if (setting_company.status) {
                 // ** Queries id_setting_company for main office
                 if (!setting_company.data.is_cabang && !setting_company.data.is_mitra) {
                     if (query.id_setting_company) {
-                        queries.pelanggan = {
+                        newQueries.pelanggan = {
                             id_setting_company: parseInt(query.id_setting_company)
                         }
                     }
@@ -44,7 +51,7 @@ export class PaymentService {
 
                 // ** Queries id_setting_company
                 if (setting_company.data.is_cabang || setting_company.data.is_mitra) {
-                    queries.pelanggan = {
+                    newQueries.pelanggan = {
                         id_setting_company: parseInt(setting_company.data.id_setting_company as any)
                     }
                 };
@@ -53,12 +60,7 @@ export class PaymentService {
             let res = await this._prismaService
                 .payment
                 .findMany({
-                    where: Object.keys(queries).reduce((aggregate, property) => {
-                        if (property == 'id_pelanggan' || property == 'id_product') {
-                            aggregate[property] = parseInt(queries[property] as any);
-                        }
-                        return aggregate;
-                    }, {}),
+                    where: newQueries,
                     include: {
                         invoice: {
                             select: {
@@ -330,8 +332,6 @@ export class PaymentService {
                 }
             }
 
-            console.log("va xendit =>", checkExpiredXendit)
-
             return {
                 status: true,
                 data: { ...invoice.data, payment: checkIsPaymentExist, is_payment_generated: true, },
@@ -446,7 +446,9 @@ export class PaymentService {
                 }
             };
 
-            const invoice = await this._invoiceService.getById(parseInt(decryptedData.id_invoice));
+            console.log("decrypted data =>", decryptedData);
+
+            const invoice = await this._invoiceService.getById(parseInt(decryptedData));
 
             if (!invoice.status) {
                 return {
@@ -568,7 +570,7 @@ export class PaymentService {
                 }
             };
 
-            const invoice = await this._invoiceService.getById(parseInt(decryptedData.id_invoice));
+            const invoice = await this._invoiceService.getById(parseInt(decryptedData));
 
             if (!invoice.status) {
                 return {
@@ -1731,6 +1733,13 @@ export class PaymentService {
                     }
                 });
 
+            if (!invoice.pelanggan.setting_company.api_key_wa) {
+                return {
+                    status: false,
+                    message: "API Key WA belum diatur"
+                }
+            };
+
             const token = this._utilityService.onEncrypt(JSON.stringify(payment.id_invoice));
 
             const messageVariable = {
@@ -1760,7 +1769,7 @@ export class PaymentService {
                 method: 'get',
                 url: `${process.env.MPWA_URL}/send-message`,
                 params: {
-                    api_key: `KVypyzJ0xqMVCnDIgvh8a2HKZGXK1V`,
+                    api_key: invoice.pelanggan.setting_company.api_key_wa,
                     sender: invoice.pelanggan.setting_company.company_whatsapp,
                     number: invoice.pelanggan.whatsapp,
                     message: messageText,

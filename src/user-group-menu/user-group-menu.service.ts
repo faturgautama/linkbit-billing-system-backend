@@ -85,7 +85,7 @@ export class UserGroupMenuService {
                 if (menu.id_parent === null) {
                     rootMenus.push(menu);
                 } else {
-                    const parentMenu = menuMap.get(menu.id_parent);
+                    const parentMenu: any = menuMap.get(menu.id_parent);
                     if (parentMenu) {
                         parentMenu.child.push(menu);
                     }

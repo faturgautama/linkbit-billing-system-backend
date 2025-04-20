@@ -16,31 +16,33 @@ export class PelangganService {
         try {
             let queries: any = { ...query }
 
+            let newQueries: any = Object.keys(queries).reduce((aggregate, property) => {
+                if (property == 'id_group_pelanggan' || property == 'id_setting_company') {
+                    aggregate[property] = parseInt(query[property] as any);
+                }
+                return aggregate;
+            }, {});
+
             const setting_company = await this._settingCompanyService.getById(parseInt(req['user']['id_setting_company']));
 
             if (setting_company.status) {
                 if (!setting_company.data.is_cabang && !setting_company.data.is_mitra) {
                     // ** do nothing
                     if (query.id_setting_company) {
-                        queries.id_setting_company = parseInt(query.id_setting_company);
+                        newQueries.id_setting_company = parseInt(query.id_setting_company);
                     }
                 };
 
                 // ** Queries id_setting_company
                 if (setting_company.data.is_cabang || setting_company.data.is_mitra) {
-                    queries.id_setting_company = parseInt(setting_company.data.id_setting_company as any);
+                    newQueries.id_setting_company = parseInt(setting_company.data.id_setting_company as any);
                 }
             }
 
             let res: any[] = await this._prismaService
                 .pelanggan
                 .findMany({
-                    where: Object.keys(queries).reduce((aggregate, property) => {
-                        if (property == 'id_group_pelanggan' || property == 'id_setting_company') {
-                            aggregate[property] = parseInt(query[property] as any);
-                        }
-                        return aggregate;
-                    }, {}),
+                    where: newQueries,
                     orderBy: {
                         id_pelanggan: 'asc'
                     },

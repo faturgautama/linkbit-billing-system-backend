@@ -97,6 +97,7 @@ model setting_company {
     is_mitra               Boolean                @default(false)
     is_cabang              Boolean                @default(false)
     api_key_pg             String?
+    api_key_wa             String?
     pelanggan              pelanggan[]
     user                   user[]
     log_whatsapp_message   log_whatsapp_message[]

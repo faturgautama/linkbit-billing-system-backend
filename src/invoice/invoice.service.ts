@@ -6,9 +6,12 @@ import { SettingCompanyService } from 'src/setting-company/setting-company.servi
 import { firstValueFrom } from 'rxjs';
 import { AxiosService } from 'src/utility/axios.service';
 import { UtilityService } from 'src/utility/utility.service';
+import { Cron, Interval } from '@nestjs/schedule';
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class InvoiceService {
+
+    private sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
     constructor(
         private _axiosService: AxiosService,
@@ -24,61 +27,54 @@ export class InvoiceService {
                 is_deleted: false
             };
 
+            let newQueries: any = Object.keys(queries).reduce((aggregate, property) => {
+                if (property == 'is_deleted') {
+                    aggregate[property] = false;
+                };
+
+                if (property == 'id_invoice' || property == 'id_product' || property == 'id_setting_company' || property == 'id_pelanggan') {
+                    aggregate[property] = parseInt(queries[property] as any);
+                };
+
+                if (property == 'invoice_date') {
+                    const queryDate = new Date(queries[property]);
+                    const year = queryDate.getFullYear();
+                    const month = queryDate.getMonth(); // No need to subtract 1
+
+                    const startDate = new Date(year, month, 1); // First day of the month
+                    const endDate = new Date(year, month + 1, 1); // First day of the next month
+
+                    aggregate[property] = {
+                        gt: startDate, // Greater than or equal to the first day of the month
+                        lt: endDate, // Less than the first day of the next month
+                    };
+                };
+
+                if (property == 'invoice_number' || property == 'invoice_status') {
+                    aggregate[property] = {
+                        contains: queries[property],
+                        mode: 'insensitive'
+                    }
+                };
+
+                return aggregate;
+            }, {});
+
             const setting_company = await this._settingCompanyService.getById(parseInt(req['user']['id_setting_company']));
 
             if (setting_company.status) {
-                // ** Queries id_setting_company for main office
-                // if (!setting_company.data.is_cabang && !setting_company.data.is_mitra) {
-                //     if (query.id_setting_company) {
-                //         queries.pelanggan = {
-                //             id_setting_company: parseInt(query.id_setting_company)
-                //         }
-                //     }
-                // };
-
                 // ** Queries id_setting_company
                 if (setting_company.data.is_cabang || setting_company.data.is_mitra) {
-                    queries.pelanggan = {
+                    newQueries.pelanggan = {
                         id_setting_company: parseInt(setting_company.data.id_setting_company as any)
-                    }
+                    };
                 };
             }
 
             let res = await this._prismaService
                 .invoice
                 .findMany({
-                    where: Object.keys(queries).reduce((aggregate, property) => {
-                        if (property == 'is_deleted') {
-                            aggregate[property] = false;
-                        };
-
-                        if (property == 'id_invoice' || property == 'id_product' || property == 'id_setting_company' || property == 'id_pelanggan') {
-                            aggregate[property] = parseInt(queries[property] as any);
-                        };
-
-                        if (property == 'invoice_date') {
-                            const queryDate = new Date(queries[property]);
-                            const year = queryDate.getFullYear();
-                            const month = queryDate.getMonth(); // No need to subtract 1
-
-                            const startDate = new Date(year, month, 1); // First day of the month
-                            const endDate = new Date(year, month + 1, 1); // First day of the next month
-
-                            aggregate[property] = {
-                                gt: startDate, // Greater than or equal to the first day of the month
-                                lt: endDate, // Less than the first day of the next month
-                            };
-                        };
-
-                        if (property == 'invoice_number' || property == 'invoice_status') {
-                            aggregate[property] = {
-                                contains: queries[property],
-                                mode: 'insensitive'
-                            }
-                        };
-
-                        return aggregate;
-                    }, {}),
+                    where: newQueries,
                     include: {
                         pelanggan: {
                             select: {
@@ -99,6 +95,18 @@ export class InvoiceService {
                                 id_product: true,
                                 product_name: true,
                             },
+                        },
+                        payment: {
+                            select: {
+                                id_payment: true,
+                                create_at: true,
+                                payment_status: true,
+                                payment_method: true,
+                                payment_amount: true
+                            },
+                            orderBy: {
+                                create_at: 'asc'
+                            }
                         }
                     },
                     orderBy: {
@@ -133,6 +141,11 @@ export class InvoiceService {
                         due_date: item.due_date,
                         notes: item.notes,
                         invoice_status: item.invoice_status,
+                        id_payment: item.payment.length ? item.payment[0].id_payment : null,
+                        payment_date: item.payment.length ? item.payment[0].create_at : null,
+                        payment_status: item.payment.length ? item.payment[0].payment_status : null,
+                        payment_method: item.payment.length ? item.payment[0].payment_method : null,
+                        payment_amount: item.payment.length ? item.payment[0].payment_amount : null,
                         create_at: item.create_at,
                         create_by: item.create_by,
                         update_at: item.update_at,
@@ -163,6 +176,8 @@ export class InvoiceService {
 
     async getById(id_invoice: number): Promise<InvoiceModel.GetByIdInvoice> {
         try {
+            console.log("id invoice =>", id_invoice);
+
             let res: any = await this._prismaService
                 .invoice
                 .findUnique({
@@ -187,6 +202,15 @@ export class InvoiceService {
                                 id_product: true,
                                 product_name: true,
                             },
+                        },
+                        payment: {
+                            select: {
+                                id_payment: true,
+                                create_at: true,
+                                payment_status: true,
+                                payment_method: true,
+                                payment_amount: true
+                            }
                         }
                     },
                 });
@@ -217,6 +241,11 @@ export class InvoiceService {
                     due_date: res.due_date,
                     notes: res.notes,
                     invoice_status: res.invoice_status,
+                    id_payment: res.payment.length ? res.payment[0].id_payment : null,
+                    payment_date: res.payment.length ? res.payment[0].create_at : null,
+                    payment_status: res.payment.length ? res.payment[0].payment_status : null,
+                    payment_method: res.payment.length ? res.payment[0].payment_method : null,
+                    payment_amount: res.payment.length ? res.payment[0].payment_amount : null,
                     create_at: res.create_at,
                     create_by: res.create_by,
                     update_at: res.update_at,
@@ -228,8 +257,6 @@ export class InvoiceService {
             }
 
         } catch (error) {
-            console.log("error =>", error);
-
             const status = error.message.includes('not found')
                 ? HttpStatus.NOT_FOUND
                 : error.message.includes('bad request')
@@ -398,6 +425,13 @@ export class InvoiceService {
                     }
                 });
 
+            if (!invoice.pelanggan.setting_company.api_key_wa) {
+                return {
+                    status: false,
+                    message: "API Key WA belum diatur"
+                }
+            };
+
             const token = this._utilityService.onEncrypt(JSON.stringify(id_invoice));
 
             const messageVariable = {
@@ -425,7 +459,7 @@ export class InvoiceService {
                 method: 'get',
                 url: `${process.env.MPWA_URL}/send-message`,
                 params: {
-                    api_key: `KVypyzJ0xqMVCnDIgvh8a2HKZGXK1V`,
+                    api_key: invoice.pelanggan.setting_company.api_key_wa,
                     sender: invoice.pelanggan.setting_company.company_whatsapp,
                     number: invoice.pelanggan.whatsapp,
                     message: messageText,
@@ -486,4 +520,59 @@ export class InvoiceService {
         }
     }
 
+    // Cron job to run on the 5th of each month at 07:00 WIB
+    // @Cron('0 0 7 5 * *', {
+    //     timeZone: 'Asia/Jakarta',
+    // })
+    @Cron('10 13 * * *', {
+        timeZone: 'Asia/Jakarta',
+    })
+    async handleSendWhatsappJob() {
+        console.log('Running job to create invoices and send WhatsApp messages.');
+
+        // Step 1: Automatically create invoices for all customers
+        const customers = await this._prismaService.pelanggan.findMany({
+            where: {
+                is_active: true,
+            },
+        });
+
+        for (const customer of customers) {
+            const invoicePayload = {
+                id_pelanggan: customer.id_pelanggan,
+                invoice_date: new Date(), // set your desired invoice date here
+                invoice_status: 'PENDING',
+                total: 1000, // set the total invoice amount as required
+                // Add other necessary fields here...
+            };
+
+            // Create invoice for each customer
+            const createdInvoice = await this.createInvoice(invoicePayload);
+
+            // Step 2: Send WhatsApp messages for each created invoice
+            if (createdInvoice) {
+                await this.sendPendingWhatsappMessages(createdInvoice.id_invoice);
+            }
+        }
+    }
+
+    // Method to create an invoice
+    async createInvoice(payload: any): Promise<any> {
+        try {
+            const invoice = await this._prismaService.invoice.create({
+                data: payload,
+            });
+
+            return invoice;
+        } catch (error) {
+            console.error('Error creating invoice:', error);
+            return null;
+        }
+    }
+
+    // Method to send WhatsApp message for a specific invoice
+    async sendPendingWhatsappMessages(id_invoice: number) {
+        await this.sendMessage(id_invoice);
+        await this.sleep(20000); // wait 20 seconds before next message
+    }
 }
