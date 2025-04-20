@@ -36,6 +36,7 @@ import { DashboardService } from './dashboard/dashboard.service';
 import { LaporanController } from './laporan/laporan.controller';
 import { LaporanService } from './laporan/laporan.service';
 import { ScheduleModule } from '@nestjs/schedule';
+import { InvoiceCronService } from './invoice/invoice-cron.service';
 
 @Module({
     imports: [
@@ -64,7 +65,6 @@ import { ScheduleModule } from '@nestjs/schedule';
     providers: [
         JwtStrategy,
         PrismaService,
-        UtilityService,
         AuthenticationService,
         UserService,
         UserGroupService,
@@ -82,6 +82,7 @@ import { ScheduleModule } from '@nestjs/schedule';
         ImageHelperService,
         UtilityService,
         AppGateway,
+        InvoiceCronService,
     ],
 })
 export class AppModule { }

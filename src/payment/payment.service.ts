@@ -316,7 +316,7 @@ export class PaymentService {
 
             const checkExpiredXenditPayload = {
                 method: 'get',
-                url: `${process.env.XENDIT_URL}/callback_virtual_accounts/payment_id=${checkIsPaymentExist.payment_id}`,
+                url: `${process.env.XENDIT_URL}/callback_virtual_accounts/${checkIsPaymentExist.payment_id}`,
                 headers: {
                     'Authorization': `Basic ${Buffer.from(`${checkIsPaymentExist.invoice.pelanggan.setting_company.api_key_pg}:`).toString('base64')}`
                 }
