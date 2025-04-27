@@ -27,34 +27,38 @@ export class PaymentService {
         try {
             let queries: any = {
                 ...query,
-                is_deleted: false
             };
 
             let newQueries: any = Object.keys(queries).reduce((aggregate, property) => {
-                if (property == 'id_pelanggan' || property == 'id_product') {
+                if (property == 'is_deleted') {
+                    aggregate[property] = false;
+                };
+
+                if (property == 'id_invoice' || property == 'id_product' || property == 'id_setting_company' || property == 'id_pelanggan') {
                     aggregate[property] = parseInt(queries[property] as any);
-                }
-                return aggregate;
-            }, {})
+                };
 
-            const setting_company = await this._settingCompanyService.getById(parseInt(req['user']['id_setting_company']));
+                if (property == 'invoice_date') {
+                    const queryDate = new Date(queries[property]);
+                    const year = queryDate.getFullYear();
+                    const month = queryDate.getMonth(); // No need to subtract 1
 
-            if (setting_company.status) {
-                // ** Queries id_setting_company for main office
-                if (!setting_company.data.is_cabang && !setting_company.data.is_mitra) {
-                    if (query.id_setting_company) {
-                        newQueries.pelanggan = {
-                            id_setting_company: parseInt(query.id_setting_company)
+                    const startDate = new Date(year, month, 1); // First day of the month
+                    const endDate = new Date(year, month + 1, 1); // First day of the next month
+
+                    aggregate['invoice'] = {
+                        invoice_date: {
+                            gt: startDate, // Greater than or equal to the first day of the month
+                            lt: endDate, // Less than the first day of the next month
                         }
                     }
                 };
 
-                // ** Queries id_setting_company
-                if (setting_company.data.is_cabang || setting_company.data.is_mitra) {
-                    newQueries.pelanggan = {
-                        id_setting_company: parseInt(setting_company.data.id_setting_company as any)
-                    }
-                };
+                return aggregate;
+            }, {});
+
+            newQueries.pelanggan = {
+                id_setting_company: parseInt(req['user']['id_setting_company'])
             }
 
             let res = await this._prismaService
@@ -64,9 +68,11 @@ export class PaymentService {
                     include: {
                         invoice: {
                             select: {
+                                due_date: true,
                                 invoice_number: true,
                                 invoice_date: true,
                                 total: true,
+                                invoice_status: true,
                             }
                         },
                         pelanggan: {
@@ -103,6 +109,8 @@ export class PaymentService {
                         id_invoice: item.id_invoice,
                         invoice_number: item.invoice.invoice_number,
                         invoice_date: item.invoice.invoice_date,
+                        due_date: item.invoice.due_date,
+                        invoice_status: item.invoice.invoice_status,
                         total: item.invoice.total,
                         id_pelanggan: item.id_pelanggan,
                         id_setting_company: item.pelanggan.setting_company.id_setting_company,
@@ -128,6 +136,8 @@ export class PaymentService {
             }
 
         } catch (error) {
+            console.log("error =>", error);
+
             const status = error.message.includes('not found')
                 ? HttpStatus.NOT_FOUND
                 : error.message.includes('bad request')
@@ -179,6 +189,14 @@ export class PaymentService {
                         }
                     },
                 });
+
+            if (!res) {
+                return {
+                    status: false,
+                    message: 'Payment Not Found',
+                    data: null
+                }
+            }
 
             return {
                 status: true,
@@ -675,7 +693,7 @@ export class PaymentService {
                         payment_id: xenditPaymentResult.data.id,
                         payment_number: payload.payment_method_code == 'QRIS' ? xenditPaymentResult.data.qr_string : xenditPaymentResult.data.account_number,
                         payment_date: new Date(),
-                        payment_status: xenditPaymentResult.data.status,
+                        payment_status: payload.payment_method_code == 'QRIS' ? 'PENDING' : xenditPaymentResult.data.status,
                         payment_method: payload.payment_method_code,
                         payment_amount: payload.payment_amount,
                         payment_provider: 'XENDIT',
@@ -883,8 +901,6 @@ export class PaymentService {
 
     async paymentCallback(payload: any): Promise<any> {
         try {
-            console.log("payload callback =>", payload);
-
             const payment = await this._prismaService
                 .payment
                 .findFirst({
@@ -1824,6 +1840,219 @@ export class PaymentService {
                     message: error.response.data.msg
                 },
                 HttpStatus.BAD_REQUEST
+            );
+        }
+    }
+
+    async paymentCash(req: Request, payload: PaymentModel.CreatePaymentCash): Promise<any> {
+        try {
+            const invoice = await this._invoiceService.getById(parseInt(payload.id_invoice as any));
+
+            if (!invoice.status) {
+                return {
+                    status: false,
+                    message: 'Invoice Not Found',
+                    data: null
+                }
+            }
+
+            if (invoice.data.invoice_status == 'PAID') {
+                return {
+                    status: false,
+                    message: 'Invoice Sudah Terbayar',
+                    data: null
+                }
+            }
+
+            const dataFromToken = invoice.data;
+
+            let res = await this._prismaService
+                .payment
+                .create({
+                    data: {
+                        id_invoice: dataFromToken.id_invoice,
+                        id_pelanggan: dataFromToken.id_pelanggan,
+                        id_product: dataFromToken.id_product,
+                        payment_token: "CASH",
+                        payment_id: `CASH-${dataFromToken.invoice_number}`,
+                        payment_number: `Uang Diterima Sebesar ${payload.payment_amount}`,
+                        payment_date: new Date(),
+                        payment_status: "PAID",
+                        payment_method: "CASH",
+                        payment_amount: dataFromToken.total,
+                        payment_provider: 'CASH',
+                        create_at: new Date(),
+                        create_by: parseInt(req['user']['id_user'])
+                    }
+                });
+
+            if (!res.id_payment) {
+                return {
+                    status: false,
+                    message: 'Pembayaran Gagal Disimpan',
+                    data: null
+                }
+            };
+
+            let resUpdateInvoice = await this._prismaService
+                .invoice
+                .update({
+                    where: {
+                        id_invoice: parseInt(payload.id_invoice as any)
+                    },
+                    data: {
+                        invoice_status: 'PAID',
+                        update_at: new Date(),
+                        update_by: parseInt(req['user']['id_user'])
+                    }
+                });
+
+            if (!resUpdateInvoice) {
+                return {
+                    status: false,
+                    message: 'Status Invoice Gagal Diperbarui',
+                    data: null
+                }
+            };
+
+            return {
+                status: true,
+                message: '',
+                data: res
+            }
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
+    async cancel(req: Request, id_payment: number): Promise<any> {
+        try {
+            const payment = await this._prismaService
+                .payment
+                .findUnique({
+                    where: {
+                        id_payment: parseInt(id_payment as any)
+                    },
+                    select: {
+                        payment_status: true
+                    }
+                });
+
+            if (!payment) {
+                return {
+                    status: false,
+                    message: 'Data Payment Tidak Ditemukan',
+                    data: null
+                }
+            }
+
+            if (payment.payment_status == 'PAID') {
+                const updatePaymentStatus = await this._prismaService
+                    .payment
+                    .update({
+                        where: {
+                            id_payment: parseInt(id_payment as any)
+                        },
+                        data: {
+                            payment_status: 'CANCELED',
+                            update_at: new Date(),
+                            update_by: parseInt(req['user']['id_user'] as any)
+                        }
+                    });
+
+                if (!updatePaymentStatus) {
+                    return {
+                        status: false,
+                        message: 'Update Status Payment Failed',
+                        data: null
+                    }
+                }
+
+                const updateInvoiceStatus = await this._prismaService
+                    .invoice
+                    .update({
+                        where: {
+                            id_invoice: parseInt(updatePaymentStatus.id_invoice as any)
+                        },
+                        data: {
+                            invoice_status: 'PENDING',
+                            update_at: new Date(),
+                            update_by: parseInt(req['user']['id_user'] as any)
+                        }
+                    });
+
+                if (!updateInvoiceStatus) {
+                    return {
+                        status: false,
+                        message: 'Update Status Invoice Failed',
+                        data: null
+                    }
+                }
+            }
+
+            if (payment.payment_status == 'PENDING') {
+                const updatePaymentStatus = await this._prismaService
+                    .payment
+                    .update({
+                        where: {
+                            id_payment: parseInt(id_payment as any)
+                        },
+                        data: {
+                            payment_status: 'CANCELED',
+                            update_at: new Date(),
+                            update_by: parseInt(req['user']['id_user'] as any)
+                        }
+                    });
+
+                if (!updatePaymentStatus) {
+                    return {
+                        status: false,
+                        message: 'Update Status Payment Failed',
+                        data: null
+                    }
+                }
+            }
+
+            if (payment.payment_status == 'CANCELED') {
+                return {
+                    status: false,
+                    message: 'Status Payment Sudah Dibatalkan',
+                    data: null
+                }
+            }
+
+            return {
+                status: true,
+                message: 'Ubah Status Payment Berhasil',
+                data: id_payment
+            }
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
             );
         }
     }

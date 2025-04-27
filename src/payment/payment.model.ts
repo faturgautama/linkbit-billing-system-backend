@@ -54,6 +54,12 @@ export namespace PaymentModel {
         payment_amount: number;
     }
 
+    export class CreatePaymentCash {
+        id_invoice: number;
+        payment_date: Date;
+        payment_amount: number;
+    }
+
     export class UpdatePayment {
         id_payment: number;
         id_invoice: number;

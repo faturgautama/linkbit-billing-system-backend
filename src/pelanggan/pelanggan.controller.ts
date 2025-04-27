@@ -1,9 +1,12 @@
-import { Body, Controller, Get, HttpStatus, Param, Post, Put, Query, Req, Res, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import { Body, Controller, Get, Header, HttpStatus, Param, Post, Put, Query, Req, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiResponse, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { JwtGuard } from 'src/authentication/jwt.guard';
 import { PelangganModel } from './pelanggan.model';
 import { PelangganService } from './pelanggan.service';
+import { FileInterceptor } from '@nestjs/platform-express';
+import * as XLSX from 'xlsx';
+import { join } from 'path';
 
 @Controller('pelanggan')
 @ApiTags('Pelanggan')
@@ -124,5 +127,55 @@ export class PelangganController {
                 data: null,
             });
         }
+    }
+
+    @Post('import')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    @ApiConsumes('multipart/form-data')
+    @ApiBody({
+        schema: {
+            type: 'object',
+            properties: {
+                file: {
+                    type: 'string',
+                    format: 'binary',
+                },
+            },
+        },
+    })
+    @ApiResponse({ status: 200, description: 'Success' })
+    @UseInterceptors(FileInterceptor('file'))
+    async importPelanggan(@UploadedFile() file: any, @Req() req: Request, @Res() res: Response) {
+        try {
+            const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rawData = XLSX.utils.sheet_to_json(worksheet);
+            const id_setting_company = parseInt(req['user']?.['id_setting_company'] as any);
+            const create_by = parseInt(req['user']?.['id_user'] as any); // or whatever your user ID field is
+
+            const result = await this._pelangganService.importFromExcel(rawData, {
+                id_setting_company,
+                create_by,
+            });
+
+            return res.status(HttpStatus.OK).json(result);
+
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
+
+    @Get('template-import')
+    @Header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    @Header('Content-Disposition', 'attachment; filename=pelanggan_import_template.xlsx')
+    downloadTemplate(@Res() res: Response) {
+        const filePath = join(process.cwd(), 'assets/pelanggan_import_template.xlsx');
+        return res.download(filePath);
     }
 }

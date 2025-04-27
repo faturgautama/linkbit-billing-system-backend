@@ -60,16 +60,10 @@ export class InvoiceService {
                 return aggregate;
             }, {});
 
-            const setting_company = await this._settingCompanyService.getById(parseInt(req['user']['id_setting_company']));
 
-            if (setting_company.status) {
-                // ** Queries id_setting_company
-                if (setting_company.data.is_cabang || setting_company.data.is_mitra) {
-                    newQueries.pelanggan = {
-                        id_setting_company: parseInt(setting_company.data.id_setting_company as any)
-                    };
-                };
-            }
+            newQueries.pelanggan = {
+                id_setting_company: parseInt(req['user']['id_setting_company'])
+            };
 
             let res = await this._prismaService
                 .invoice
@@ -176,8 +170,6 @@ export class InvoiceService {
 
     async getById(id_invoice: number): Promise<InvoiceModel.GetByIdInvoice> {
         try {
-            console.log("id invoice =>", id_invoice);
-
             let res: any = await this._prismaService
                 .invoice
                 .findUnique({
@@ -373,6 +365,45 @@ export class InvoiceService {
 
     async delete(req: Request, id_invoice: number): Promise<any> {
         try {
+            const findPayment = await this._prismaService
+                .payment
+                .findFirst({
+                    where: {
+                        id_invoice: parseInt(id_invoice as any)
+                    }
+                });
+
+            if (findPayment.id_payment) {
+                if (findPayment.payment_status == 'PAID') {
+                    return {
+                        status: false,
+                        message: 'Invoice Telah Terbayar',
+                        data: null
+                    }
+                };
+
+                const cancelPaymentPending = await this._prismaService
+                    .payment
+                    .update({
+                        where: {
+                            id_payment: parseInt(findPayment.id_payment as any)
+                        },
+                        data: {
+                            payment_status: 'CANCELED',
+                            update_at: new Date(),
+                            update_by: parseInt(req['user']['id_user'] as any)
+                        }
+                    });
+
+                if (!cancelPaymentPending) {
+                    return {
+                        status: false,
+                        message: 'Payment Gagal Dibatalkan',
+                        data: null
+                    }
+                };
+            };
+
             let res = await this._prismaService
                 .invoice
                 .update({

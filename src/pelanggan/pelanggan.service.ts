@@ -23,21 +23,7 @@ export class PelangganService {
                 return aggregate;
             }, {});
 
-            const setting_company = await this._settingCompanyService.getById(parseInt(req['user']['id_setting_company']));
-
-            if (setting_company.status) {
-                if (!setting_company.data.is_cabang && !setting_company.data.is_mitra) {
-                    // ** do nothing
-                    if (query.id_setting_company) {
-                        newQueries.id_setting_company = parseInt(query.id_setting_company);
-                    }
-                };
-
-                // ** Queries id_setting_company
-                if (setting_company.data.is_cabang || setting_company.data.is_mitra) {
-                    newQueries.id_setting_company = parseInt(setting_company.data.id_setting_company as any);
-                }
-            }
+            newQueries.id_setting_company = parseInt(req['user']['id_setting_company']);
 
             let res: any[] = await this._prismaService
                 .pelanggan
@@ -348,6 +334,84 @@ export class PelangganService {
                 message: 'Produk Layanan Pelanggan Berhasil Disimpan',
                 data: null
             }
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
+    async importFromExcel(data: any[], meta: { id_setting_company: number; create_by: number }) {
+        try {
+            const results = [];
+
+            for (const row of data) {
+                const pelanggan = await this._prismaService.pelanggan.create({
+                    data: {
+                        id_setting_company: meta.id_setting_company,
+                        id_group_pelanggan: row.id_group_pelanggan
+                            ? Number(row.id_group_pelanggan)
+                            : 1, // default to 1
+                        full_name: row.full_name,
+                        pelanggan_code: row.pelanggan_code,
+                        identity_number: row.identity_number || null,
+                        email: row.email || null,
+                        password: row.password || null,
+                        alamat: row.alamat || null,
+                        phone: row.phone,
+                        whatsapp: row.whatsapp || null,
+                        subscribe_start_date: row.subscribe_start_date
+                            ? new Date(row.subscribe_start_date)
+                            : null,
+                        pic_name: row.pic_name || null,
+                        notes: row.notes || null,
+                        is_active: row.is_active !== undefined ? Boolean(row.is_active) : true,
+                        create_by: meta.create_by,
+                        create_at: new Date(),
+                    },
+                });
+
+                await this._prismaService.history_import_pelanggan.create({
+                    data: {
+                        id_pelanggan: pelanggan.id_pelanggan,
+                        id_setting_company: pelanggan.id_setting_company,
+                        id_group_pelanggan: pelanggan.id_group_pelanggan,
+                        full_name: pelanggan.full_name,
+                        pelanggan_code: pelanggan.pelanggan_code,
+                        identity_number: pelanggan.identity_number,
+                        email: pelanggan.email,
+                        password: pelanggan.password,
+                        alamat: pelanggan.alamat,
+                        phone: pelanggan.phone,
+                        whatsapp: pelanggan.whatsapp,
+                        subscribe_start_date: pelanggan.subscribe_start_date,
+                        pic_name: pelanggan.pic_name,
+                        notes: pelanggan.notes,
+                        is_active: pelanggan.is_active,
+                        create_by: pelanggan.create_by,
+                        create_at: new Date(),
+                    },
+                });
+
+                results.push(pelanggan);
+            }
+
+            return {
+                status: true,
+                message: `Berhasil Import ${results.length} data dari ${data.length} total data`,
+                data: results
+            };
 
         } catch (error) {
             const status = error.message.includes('not found')

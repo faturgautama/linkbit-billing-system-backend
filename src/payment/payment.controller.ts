@@ -204,4 +204,42 @@ export class PaymentController {
             });
         }
     }
+
+    @Post('create-payment-cash')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetByIdPayment })
+    async paymentCash(@Body() body: PaymentModel.CreatePaymentCash, @Req() req: Request, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._paymentService.paymentCash(req, body);
+            return res.status(HttpStatus.OK).json(data);
+
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
+
+    @Put('cancel/:id_payment')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetByIdPayment })
+    async cancel(@Param('id_payment') id_payment: string, @Req() req: Request, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._paymentService.cancel(req, parseInt(id_payment));
+            return res.status(HttpStatus.OK).json(data);
+
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
 }

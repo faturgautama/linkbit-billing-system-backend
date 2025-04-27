@@ -26,6 +26,12 @@ export class AxiosService {
 
         return this._httpService.request(axiosConfig).pipe(
             map(result => {
+                console.log("======================================================");
+                console.log("http request url =>", axiosConfig.url);
+                console.log("http request data =>", axiosConfig.params);
+                console.log("http request result =>", result);
+                console.log("======================================================");
+
                 return {
                     status: result.status == 200 || result.status == 201 ? true : false,
                     message: result.statusText,

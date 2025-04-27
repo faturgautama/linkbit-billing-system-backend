@@ -16,18 +16,7 @@ export class UserService {
         try {
             let queries: any = { ...query }
 
-            const setting_company = await this._settingCompanyService.getById(parseInt(req['user']['id_setting_company']));
-
-            if (setting_company.status) {
-                if (!setting_company.data.is_cabang && !setting_company.data.is_mitra) {
-                    // ** do nothing
-                };
-
-                // ** Queries id_setting_company
-                if (setting_company.data.is_cabang || setting_company.data.is_mitra) {
-                    queries.id_setting_company = setting_company.data.id_setting_company;
-                }
-            }
+            queries.id_setting_company = parseInt(req['user']['id_setting_company']);
 
             let res = await this._prismaService
                 .user
