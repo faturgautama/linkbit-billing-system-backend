@@ -23,7 +23,7 @@ export class InvoiceCronService {
     // @Cron('0 0 7 5 * *', {
     //     timeZone: 'Asia/Jakarta',
     // })
-    @Cron('0 0 15 28 4 *', {
+    @Cron('0 0 0 29 * *', {
         timeZone: 'Asia/Jakarta',
     })
     async handleSendWhatsappJob() {

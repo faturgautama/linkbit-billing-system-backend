@@ -20,9 +20,9 @@ export class ProductService {
             let res: any[] = await this._prismaService
                 .product
                 .findMany({
-                    where: Object.keys(query).reduce((aggregate, property) => {
+                    where: Object.keys(queries).reduce((aggregate, property) => {
                         if (property == 'price') {
-                            aggregate[property] = parseInt(query[property] as any);
+                            aggregate[property] = parseInt(queries[property] as any);
                         }
                         return aggregate;
                     }, {}),
