@@ -285,3 +285,15 @@ model history_import_pelanggan {
     create_at            DateTime        @default(now())
     create_by            Int
 }
+
+model template_editor {
+    id_template_editor      Int       @id @default(autoincrement())
+    template_pesan_invoice  String
+    template_pesan_lunas    String
+    template_editor_invoice String
+    template_editor_pos     String
+    create_at               DateTime  @default(now())
+    create_by               Int
+    update_at               DateTime?
+    update_by               Int?
+}

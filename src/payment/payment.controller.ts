@@ -85,6 +85,8 @@ export class PaymentController {
     }
 
     @Get('get-all-payment-method-for-internal')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetAllPaymentMethod })
     async getAllPaymentMethodForInternal(@Req() req: Request, @Res() res: Response): Promise<any> {
         try {

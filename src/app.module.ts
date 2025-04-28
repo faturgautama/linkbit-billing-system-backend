@@ -37,6 +37,8 @@ import { LaporanController } from './laporan/laporan.controller';
 import { LaporanService } from './laporan/laporan.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { InvoiceCronService } from './invoice/invoice-cron.service';
+import { TemplateEditorController } from './template-editor/template-editor.controller';
+import { TemplateEditorService } from './template-editor/template-editor.service';
 
 @Module({
     imports: [
@@ -61,6 +63,7 @@ import { InvoiceCronService } from './invoice/invoice-cron.service';
         PaymentController,
         DashboardController,
         LaporanController,
+        TemplateEditorController,
     ],
     providers: [
         JwtStrategy,
@@ -83,6 +86,7 @@ import { InvoiceCronService } from './invoice/invoice-cron.service';
         UtilityService,
         AppGateway,
         InvoiceCronService,
+        TemplateEditorService
     ],
 })
 export class AppModule { }

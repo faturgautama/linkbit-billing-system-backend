@@ -80,6 +80,7 @@ export class PaymentService {
                                 id_pelanggan: true,
                                 full_name: true,
                                 pelanggan_code: true,
+                                alamat: true,
                                 setting_company: {
                                     select: {
                                         id_setting_company: true,
@@ -116,6 +117,7 @@ export class PaymentService {
                         id_setting_company: item.pelanggan.setting_company.id_setting_company,
                         company_name: item.pelanggan.setting_company.company_name,
                         full_name: item.pelanggan.full_name,
+                        alamat: item.pelanggan.alamat,
                         pelanggan_code: item.pelanggan.pelanggan_code,
                         id_product: item.id_product,
                         product_name: item.product.product_name,
@@ -154,7 +156,7 @@ export class PaymentService {
         }
     }
 
-    async getById(id_payment: number): Promise<PaymentModel.GetByIdPayment> {
+    async getById(id_payment: number): Promise<any> {
         try {
             let res: any = await this._prismaService
                 .payment
@@ -166,6 +168,10 @@ export class PaymentService {
                                 invoice_number: true,
                                 invoice_date: true,
                                 total: true,
+                                due_date: true,
+                                price: true,
+                                admin_fee: true,
+                                invoice_status: true,
                             }
                         },
                         pelanggan: {
@@ -173,12 +179,15 @@ export class PaymentService {
                                 id_pelanggan: true,
                                 full_name: true,
                                 pelanggan_code: true,
+                                alamat: true,
                                 setting_company: {
                                     select: {
                                         id_setting_company: true,
-                                        company_name: true
+                                        company_name: true,
+                                        tagihan_editor_invoice: true,
+                                        tagihan_editor_pos: true
                                     }
-                                }
+                                },
                             }
                         },
                         product: {
@@ -207,11 +216,18 @@ export class PaymentService {
                     invoice_number: res.invoice.invoice_number,
                     invoice_date: res.invoice.invoice_date,
                     total: res.invoice.total,
+                    due_date: res.invoice.due_date,
+                    price: res.invoice.price,
+                    admin_fee: res.invoice.admin_fee,
+                    invoice_status: res.invoice.invoice_status,
                     id_pelanggan: res.id_pelanggan,
                     id_setting_company: res.pelanggan.setting_company.id_setting_company,
                     company_name: res.pelanggan.setting_company.company_name,
+                    tagihan_editor_invoice: res.pelanggan.setting_company.tagihan_editor_invoice,
+                    tagihan_editor_pos: res.pelanggan.setting_company.tagihan_editor_pos,
                     full_name: res.pelanggan.full_name,
                     pelanggan_code: res.pelanggan.pelanggan_code,
+                    alamat: res.pelanggan.alamat,
                     id_product: res.id_product,
                     product_name: res.product.product_name,
                     payment_token: res.payment_token,

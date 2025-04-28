@@ -14,16 +14,35 @@ export class PelangganService {
 
     async getAll(req: Request, query: PelangganModel.IPelangganQueryParams): Promise<PelangganModel.GetAllPelanggan> {
         try {
-            let queries: any = { ...query }
+            let queries: any = { ...query, is_active: true }
 
             let newQueries: any = Object.keys(queries).reduce((aggregate, property) => {
                 if (property == 'id_group_pelanggan' || property == 'id_setting_company') {
                     aggregate[property] = parseInt(query[property] as any);
                 }
+
+                if (property == 'is_active') {
+                    aggregate[property] = true;
+                }
                 return aggregate;
             }, {});
 
-            newQueries.id_setting_company = parseInt(req['user']['id_setting_company']);
+            const setting_company = await this._settingCompanyService.getById(parseInt(req['user']['id_setting_company']));
+
+            if (setting_company.status) {
+                if (!setting_company.data.is_cabang && !setting_company.data.is_mitra) {
+                    if (query.id_setting_company) {
+                        newQueries.id_setting_company = parseInt(query.id_setting_company);
+                    } else {
+                        newQueries.id_setting_company = parseInt(req['user']['id_setting_company']);
+                    }
+                };
+
+                // ** Queries id_setting_company
+                if (setting_company.data.is_cabang || setting_company.data.is_mitra) {
+                    newQueries.id_setting_company = parseInt(req['user']['id_setting_company']);
+                }
+            }
 
             let res: any[] = await this._prismaService
                 .pelanggan
@@ -159,17 +178,25 @@ export class PelangganService {
         try {
             const { id_pelanggan, ...data } = payload;
 
-            const setting_company = await this._prismaService
-                .setting_company
-                .findFirst();
-
             let res = await this._prismaService
                 .pelanggan
                 .update({
                     where: { id_pelanggan: parseInt(id_pelanggan as any) },
                     data: {
-                        ...data,
-                        id_setting_company: parseInt(setting_company.id_setting_company as any),
+                        id_setting_company: parseInt(payload.id_setting_company as any),
+                        id_group_pelanggan: parseInt(payload.id_group_pelanggan as any),
+                        full_name: payload.full_name,
+                        pelanggan_code: payload.pelanggan_code,
+                        identity_number: payload.identity_number,
+                        email: payload.email,
+                        password: payload.password,
+                        alamat: payload.alamat,
+                        phone: payload.phone,
+                        whatsapp: payload.whatsapp,
+                        subscribe_start_date: payload.subscribe_start_date,
+                        pic_name: payload.pic_name,
+                        notes: payload.notes,
+                        is_active: payload.is_active,
                         update_at: new Date(),
                         update_by: parseInt(req['user']['id_user'] as any)
                     }
@@ -182,6 +209,8 @@ export class PelangganService {
             }
 
         } catch (error) {
+            console.log(error);
+
             const status = error.message.includes('not found')
                 ? HttpStatus.NOT_FOUND
                 : error.message.includes('bad request')
