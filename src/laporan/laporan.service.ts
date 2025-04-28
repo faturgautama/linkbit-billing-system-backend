@@ -13,7 +13,7 @@ export class LaporanService {
         private _utilityService: UtilityService,
     ) { }
 
-    async getRekapTagihanBulanan(query: LaporanModel.IQueryParamLaporanTagihan): Promise<LaporanModel.GetRekapTagihanBulanan> {
+    async getRekapTagihanBulanan(req: Request, query: LaporanModel.IQueryParamLaporanTagihan): Promise<LaporanModel.GetRekapTagihanBulanan> {
         try {
             if (!query.date) {
                 return {
@@ -45,14 +45,12 @@ export class LaporanService {
                     }
                 };
 
-            if (query.id_setting_company) {
-                queries.pelanggan = {
-                    id_setting_company: parseInt(query.id_setting_company as any)
-                };
-            };
-
             if (query.id_product) {
                 queries.id_product = parseInt(query.id_product as any);
+            };
+
+            queries.pelanggan = {
+                id_setting_company: parseInt(req['user']['id_setting_company'] as any)
             };
 
             const invoice = await this._prismaService
@@ -105,7 +103,7 @@ export class LaporanService {
         }
     }
 
-    async getDetailTagihanBulanan(query: LaporanModel.IQueryParamLaporanTagihan): Promise<LaporanModel.GetDetailTagihanBulanan> {
+    async getDetailTagihanBulanan(req: Request, query: LaporanModel.IQueryParamLaporanTagihan): Promise<LaporanModel.GetDetailTagihanBulanan> {
         try {
             if (!query.date) {
                 return {
@@ -123,13 +121,10 @@ export class LaporanService {
                 invoice_date: {
                     gte: `${start_date}T00:00:00.000Z`,
                     lte: `${end_date}T23:59:59.999Z`,
+                },
+                pelanggan: {
+                    id_setting_company: parseInt(req['user']['id_setting_company'] as any)
                 }
-            };
-
-            if (query.id_setting_company) {
-                queries.pelanggan = {
-                    id_setting_company: parseInt(query.id_setting_company as any)
-                };
             };
 
             if (query.id_product) {
@@ -226,7 +221,7 @@ export class LaporanService {
         }
     }
 
-    async getRekapPembayaranBulanan(query: LaporanModel.IQueryParamLaporanPembayaran): Promise<LaporanModel.GetRekapPembayaranBulanan> {
+    async getRekapPembayaranBulanan(req: Request, query: LaporanModel.IQueryParamLaporanPembayaran): Promise<LaporanModel.GetRekapPembayaranBulanan> {
         try {
             if (!query.date) {
                 return {
@@ -254,15 +249,11 @@ export class LaporanService {
                     create_at: {
                         gte: `${start_date}T00:00:00.000Z`,
                         lte: `${end_date}T23:59:59.999Z`,
+                    },
+                    pelanggan: {
+                        id_setting_company: parseInt(req['user']['id_setting_company'] as any)
                     }
                 };
-
-            if (query.id_setting_company) {
-                queries.pelanggan = {
-                    ...queries.pelanggan,
-                    id_setting_company: parseInt(query.id_setting_company as any)
-                };
-            };
 
             if (query.id_group_pelanggan) {
                 queries.pelanggan = {
@@ -313,7 +304,7 @@ export class LaporanService {
         }
     }
 
-    async getDetailPembayaranBulanan(query: LaporanModel.IQueryParamLaporanPembayaran): Promise<LaporanModel.GetDetailPembayaranBulanan> {
+    async getDetailPembayaranBulanan(req: Request, query: LaporanModel.IQueryParamLaporanPembayaran): Promise<LaporanModel.GetDetailPembayaranBulanan> {
         try {
             if (!query.date) {
                 return {
@@ -331,14 +322,10 @@ export class LaporanService {
                 create_at: {
                     gte: `${start_date}T00:00:00.000Z`,
                     lte: `${end_date}T23:59:59.999Z`,
+                },
+                pelanggan: {
+                    id_setting_company: parseInt(req['user']['id_setting_company'] as any)
                 }
-            };
-
-            if (query.id_setting_company) {
-                queries.pelanggan = {
-                    ...queries.pelanggan,
-                    id_setting_company: parseInt(query.id_setting_company as any)
-                };
             };
 
             if (query.id_group_pelanggan) {

@@ -17,9 +17,9 @@ export class LaporanController {
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: LaporanModel.GetRekapPembayaranBulanan })
-    async getAllRekapInvoice(@Query() query: LaporanModel.IQueryParamLaporanTagihan, @Res() res: Response): Promise<any> {
+    async getAllRekapInvoice(@Query() query: LaporanModel.IQueryParamLaporanTagihan, @Req() req: Request, @Res() res: Response): Promise<any> {
         try {
-            const data = await this._laporanService.getRekapTagihanBulanan(query);
+            const data = await this._laporanService.getRekapTagihanBulanan(req, query);
             return res.status(HttpStatus.OK).json(data);
         } catch (error) {
             const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
@@ -35,9 +35,9 @@ export class LaporanController {
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: LaporanModel.GetDetailTagihanBulanan })
-    async getAllDetailInvoice(@Query() query: LaporanModel.IQueryParamLaporanTagihan, @Res() res: Response): Promise<any> {
+    async getAllDetailInvoice(@Query() query: LaporanModel.IQueryParamLaporanTagihan, @Req() req: Request, @Res() res: Response): Promise<any> {
         try {
-            const data = await this._laporanService.getDetailTagihanBulanan(query);
+            const data = await this._laporanService.getDetailTagihanBulanan(req, query);
             return res.status(HttpStatus.OK).json(data);
         } catch (error) {
             const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
@@ -53,9 +53,9 @@ export class LaporanController {
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: LaporanModel.GetRekapPembayaranBulanan })
-    async getAllRekapPembayaran(@Query() query: LaporanModel.IQueryParamLaporanPembayaran, @Res() res: Response): Promise<any> {
+    async getAllRekapPembayaran(@Query() query: LaporanModel.IQueryParamLaporanPembayaran, @Req() req: Request, @Res() res: Response): Promise<any> {
         try {
-            const data = await this._laporanService.getRekapPembayaranBulanan(query);
+            const data = await this._laporanService.getRekapPembayaranBulanan(req, query);
             return res.status(HttpStatus.OK).json(data);
         } catch (error) {
             const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
@@ -71,9 +71,9 @@ export class LaporanController {
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: LaporanModel.GetDetailPembayaranBulanan })
-    async getAllDetailPembayaran(@Query() query: LaporanModel.IQueryParamLaporanPembayaran, @Res() res: Response): Promise<any> {
+    async getAllDetailPembayaran(@Query() query: LaporanModel.IQueryParamLaporanPembayaran, @Req() req: Request, @Res() res: Response): Promise<any> {
         try {
-            const data = await this._laporanService.getDetailPembayaranBulanan(query);
+            const data = await this._laporanService.getDetailPembayaranBulanan(req, query);
             return res.status(HttpStatus.OK).json(data);
         } catch (error) {
             const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
