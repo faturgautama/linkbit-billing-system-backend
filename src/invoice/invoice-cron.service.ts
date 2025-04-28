@@ -23,7 +23,7 @@ export class InvoiceCronService {
     // @Cron('0 0 7 5 * *', {
     //     timeZone: 'Asia/Jakarta',
     // })
-    @Cron('0 0 14 28 4 *', {
+    @Cron('0 0 15 28 4 *', {
         timeZone: 'Asia/Jakarta',
     })
     async handleSendWhatsappJob() {
@@ -126,16 +126,16 @@ export class InvoiceCronService {
         await this.sleep(20000); // wait 20 seconds before next message
     }
 
-    @Cron('0 * * * *') // Every minute
-    async testCron() {
-        console.log('Test cron running');
+    // @Cron('0 * * * *') // Every minute
+    // async testCron() {
+    //     console.log('Test cron running');
 
-        const pendingInvoices = await this._prismaService.invoice.findMany({
-            where: {
-                invoice_status: 'PENDING',
-            },
-        });
+    //     const pendingInvoices = await this._prismaService.invoice.findMany({
+    //         where: {
+    //             invoice_status: 'PENDING',
+    //         },
+    //     });
 
-        console.log('Pending invoices:', pendingInvoices.length);
-    }
+    //     console.log('Pending invoices:', pendingInvoices.length);
+    // }
 }
