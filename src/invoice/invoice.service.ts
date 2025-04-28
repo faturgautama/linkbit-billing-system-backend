@@ -373,7 +373,7 @@ export class InvoiceService {
                     }
                 });
 
-            if (findPayment.id_payment) {
+            if (findPayment && findPayment.id_payment) {
                 if (findPayment.payment_status == 'PAID') {
                     return {
                         status: false,

@@ -103,6 +103,7 @@ model setting_company {
     log_whatsapp_message     log_whatsapp_message[]
     tagihan_kso              tagihan_kso[]
     history_import_pelanggan history_import_pelanggan[]
+    product                  product[]
 }
 
 model product {
@@ -120,6 +121,8 @@ model product {
     pelanggan_product        pelanggan_product[]
     invoice                  invoice[]
     payment                  payment[]
+    setting_company          setting_company     @relation(fields: [id_setting_company], references: [id_setting_company])
+    id_setting_company       Int
 }
 
 model group_pelanggan {

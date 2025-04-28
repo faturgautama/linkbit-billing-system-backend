@@ -10,8 +10,13 @@ export class ProductService {
         private _prismaService: PrismaService,
     ) { }
 
-    async getAll(query: ProductModel.IProductQueryParams): Promise<ProductModel.GetAllProduct> {
+    async getAll(req: Request, query: ProductModel.IProductQueryParams): Promise<ProductModel.GetAllProduct> {
         try {
+            let queries = {
+                ...query,
+                id_setting_company: parseInt(req['user']['id_setting_company'])
+            }
+
             let res: any[] = await this._prismaService
                 .product
                 .findMany({
@@ -88,7 +93,8 @@ export class ProductService {
                     data: {
                         ...payload,
                         create_at: new Date(),
-                        create_by: parseInt(req['user']['id_user'] as any)
+                        create_by: parseInt(req['user']['id_user'] as any),
+                        id_setting_company: parseInt(req['user']['id_setting_company'])
                     }
                 })
 

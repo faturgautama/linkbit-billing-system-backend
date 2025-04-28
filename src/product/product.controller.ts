@@ -17,9 +17,9 @@ export class ProductController {
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: ProductModel.GetAllProduct })
-    async getAll(@Query() query: ProductModel.IProductQueryParams, @Res() res: Response): Promise<any> {
+    async getAll(@Query() query: ProductModel.IProductQueryParams, @Req() req: Request, @Res() res: Response): Promise<any> {
         try {
-            const data = await this._productService.getAll(query);
+            const data = await this._productService.getAll(req, query);
             return res.status(HttpStatus.OK).json(data);
         } catch (error) {
             const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
