@@ -1882,6 +1882,10 @@ export class PaymentService {
 
             const dataFromToken = invoice.data;
 
+            const settingCompany = await this._settingCompanyService.getById(parseInt(req['user']['id_setting_company']))
+
+            let is_mitra = settingCompany.status && settingCompany.data.is_mitra && !settingCompany.data.is_cabang;
+
             let res = await this._prismaService
                 .payment
                 .create({
@@ -1889,14 +1893,14 @@ export class PaymentService {
                         id_invoice: dataFromToken.id_invoice,
                         id_pelanggan: dataFromToken.id_pelanggan,
                         id_product: dataFromToken.id_product,
-                        payment_token: "CASH",
-                        payment_id: `CASH-${dataFromToken.invoice_number}`,
-                        payment_number: `Uang Diterima Sebesar ${payload.payment_amount}`,
+                        payment_token: is_mitra ? 'TRANSFER BANK' : "CASH",
+                        payment_id: `${is_mitra ? 'TRF' : 'CASH'}-${dataFromToken.invoice_number}`,
+                        payment_number: is_mitra ? settingCompany.data.company_nomor_rekening : `Uang Diterima Sebesar ${payload.payment_amount}`,
                         payment_date: new Date(),
                         payment_status: "PAID",
-                        payment_method: "CASH",
+                        payment_method: is_mitra ? settingCompany.data.company_bank_name : "CASH",
                         payment_amount: dataFromToken.total,
-                        payment_provider: 'CASH',
+                        payment_provider: is_mitra ? 'DIRECT' : "CASH",
                         create_at: new Date(),
                         create_by: parseInt(req['user']['id_user'])
                     }
