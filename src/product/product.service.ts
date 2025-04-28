@@ -21,7 +21,7 @@ export class ProductService {
                 .product
                 .findMany({
                     where: Object.keys(queries).reduce((aggregate, property) => {
-                        if (property == 'price') {
+                        if (property == 'price' || property == 'id_setting_company') {
                             aggregate[property] = parseInt(queries[property] as any);
                         }
                         return aggregate;
