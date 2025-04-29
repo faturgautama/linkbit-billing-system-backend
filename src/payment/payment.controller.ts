@@ -244,4 +244,20 @@ export class PaymentController {
             });
         }
     }
+
+    @Get('change-payment-method/:token')
+    @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetAllPaymentMethod })
+    async changePaymentMethod(@Param('token') token: string, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._paymentService.changePaymentMethod(token);
+            return res.status(HttpStatus.OK).json(data);
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
 }

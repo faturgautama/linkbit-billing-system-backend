@@ -325,7 +325,8 @@ export class PaymentService {
                 .payment
                 .findFirst({
                     where: {
-                        id_invoice: parseInt(data.id_invoice ? data.id_invoice : data)
+                        id_invoice: parseInt(data.id_invoice ? data.id_invoice : data),
+                        payment_status: 'PENDING',
                     },
                     include: {
                         invoice: {
@@ -590,6 +591,73 @@ export class PaymentService {
     }
 
     // ** Change payment method => Update VA, conditionally by payment method
+    async changePaymentMethod(token: string) {
+        try {
+            const data = this._utilityService.onDecrypt(token);
+
+            if (!data) {
+                return {
+                    status: false,
+                    message: 'Token Is Invalid',
+                    data: null
+                }
+            };
+
+            let invoice = await this._invoiceService.getById(parseInt(data.id_invoice ? data.id_invoice : data));
+
+            const checkIsPaymentExist = await this._prismaService
+                .payment
+                .findFirst({
+                    where: {
+                        id_invoice: parseInt(data.id_invoice ? data.id_invoice : data),
+                    },
+                });
+
+            if (checkIsPaymentExist) {
+                const updateStatusPayment = await this._prismaService
+                    .payment
+                    .update({
+                        where: {
+                            id_payment: parseInt(checkIsPaymentExist.id_payment as any)
+                        },
+                        data: {
+                            payment_status: 'CHANGED',
+                            update_by: parseInt(checkIsPaymentExist.id_pelanggan as any),
+                            update_at: new Date()
+                        }
+                    });
+
+                if (!updateStatusPayment) {
+                    return {
+                        status: false,
+                        message: 'Update Payment Method Failed',
+                        data: null
+                    }
+                }
+            }
+
+            return {
+                status: true,
+                data: { ...invoice.data, payment: null as any, is_payment_generated: false, },
+                message: ''
+            }
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
 
     // ** Create Checkout -> HIT Create QR / Create VA Bank, if success save to DB using payment function
     async payment(payload: PaymentModel.CreatePayment): Promise<any> {
