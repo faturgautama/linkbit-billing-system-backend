@@ -616,14 +616,9 @@ export class PaymentService {
             if (checkIsPaymentExist) {
                 const updateStatusPayment = await this._prismaService
                     .payment
-                    .update({
+                    .delete({
                         where: {
                             id_payment: parseInt(checkIsPaymentExist.id_payment as any)
-                        },
-                        data: {
-                            payment_status: 'CHANGED',
-                            update_by: parseInt(checkIsPaymentExist.id_pelanggan as any),
-                            update_at: new Date()
                         }
                     });
 
