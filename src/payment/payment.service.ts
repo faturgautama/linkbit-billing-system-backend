@@ -657,6 +657,14 @@ export class PaymentService {
     // ** Create Checkout -> HIT Create QR / Create VA Bank, if success save to DB using payment function
     async payment(payload: PaymentModel.CreatePayment): Promise<any> {
         try {
+            if (payload.payment_method_code == 'BCA' && parseFloat(payload.payment_amount as any) < 10000) {
+                return {
+                    status: false,
+                    message: 'Minimal Transaksi Adalah Rp 10.000,-',
+                    data: null
+                }
+            }
+
             const decryptedData = this._utilityService.onDecrypt(payload.payment_token);
 
             if (!decryptedData) {
@@ -741,7 +749,7 @@ export class PaymentService {
                     'Content-Type': 'application/json'
                 },
                 data: {
-                    external_id: `${dataFromToken.invoice_number}`,
+                    external_id: `${dataFromToken.invoice_number}_${new Date().getTime()}`,
                     reference_id: dataFromToken.invoice_number,
                     type: 'DYNAMIC',
                     currency: 'IDR',
