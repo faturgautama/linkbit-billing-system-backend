@@ -349,21 +349,23 @@ export class PaymentService {
                 }
             };
 
-            const checkExpiredXenditPayload = {
-                method: 'get',
-                url: `${process.env.XENDIT_URL}/callback_virtual_accounts/${checkIsPaymentExist.payment_id}`,
-                headers: {
-                    'Authorization': `Basic ${Buffer.from(`${checkIsPaymentExist.invoice.pelanggan.setting_company.api_key_pg}:`).toString('base64')}`
-                }
-            };
+            if (checkIsPaymentExist.payment_method != 'QRIS') {
+                const checkExpiredXenditPayload = {
+                    method: 'get',
+                    url: `${process.env.XENDIT_URL}/callback_virtual_accounts/${checkIsPaymentExist.payment_id}`,
+                    headers: {
+                        'Authorization': `Basic ${Buffer.from(`${checkIsPaymentExist.invoice.pelanggan.setting_company.api_key_pg}:`).toString('base64')}`
+                    }
+                };
 
-            const checkExpiredXendit = await firstValueFrom(this._axiosService.onAxiosRequest(checkExpiredXenditPayload));
+                const checkExpiredXendit = await firstValueFrom(this._axiosService.onAxiosRequest(checkExpiredXenditPayload));
 
-            if (!checkExpiredXendit.status) {
-                return {
-                    status: false,
-                    message: 'Payment Not Found',
-                    data: null
+                if (!checkExpiredXendit.status) {
+                    return {
+                        status: false,
+                        message: 'Payment Not Found',
+                        data: null
+                    }
                 }
             }
 
