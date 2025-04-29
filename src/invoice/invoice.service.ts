@@ -196,6 +196,9 @@ export class InvoiceService {
                             },
                         },
                         payment: {
+                            where: {
+                                payment_status: 'PENDING',
+                            },
                             select: {
                                 id_payment: true,
                                 create_at: true,
