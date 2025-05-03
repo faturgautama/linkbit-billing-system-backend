@@ -12,8 +12,9 @@ export class ActivityLoggerMiddleware implements NestMiddleware {
     ) { }
 
     async use(req: Request, res: Response, next: NextFunction) {
+        console.log("request =>", req);
+
         const endpoint = req['params']['0'];
-        console.log("endpoint =>", endpoint);
 
         if (endpoint.includes('authentication')) {
             return next();
@@ -24,6 +25,7 @@ export class ActivityLoggerMiddleware implements NestMiddleware {
 
         // Parse browser info
         const agent = useragent.parse(req.headers['user-agent'] || '');
+
 
         const payloadCreate = {
             id_user: req.user['id_user'],
@@ -39,9 +41,9 @@ export class ActivityLoggerMiddleware implements NestMiddleware {
         console.log("payload create log =>", payloadCreate);
 
         // Save log only if user is authenticated
-        await this.prisma.log_activity_user.create({
-            data: payloadCreate
-        });
+        // await this.prisma.log_activity_user.create({
+        //     data: payloadCreate
+        // });
 
         next();
     }
