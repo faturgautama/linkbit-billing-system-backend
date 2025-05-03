@@ -12,6 +12,8 @@ export class ActivityLoggerMiddleware implements NestMiddleware {
     ) { }
 
     async use(req: Request, res: Response, next: NextFunction) {
+        console.log("request =>", req.path);
+
         if (req.path.includes('authentication')) {
             return next();
         }
