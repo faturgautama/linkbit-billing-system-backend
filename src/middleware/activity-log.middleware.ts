@@ -12,9 +12,7 @@ export class ActivityLoggerMiddleware implements NestMiddleware {
     ) { }
 
     async use(req: Request, res: Response, next: NextFunction) {
-        const excludedPrefix = '/authentication';
-
-        if (req.path.startsWith(excludedPrefix)) {
+        if (req.path.includes('authentication')) {
             return next();
         }
 
