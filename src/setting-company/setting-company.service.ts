@@ -65,6 +65,9 @@ export class SettingCompanyService {
                 .findUnique({
                     where: {
                         id_setting_company: parseInt(id_setting_company as any)
+                    },
+                    include: {
+                        payment_method_manual: true
                     }
                 });
 
@@ -138,6 +141,117 @@ export class SettingCompanyService {
                     where: { id_setting_company: parseInt(id_setting_company as any) },
                     data: {
                         ...data,
+                        update_at: new Date(),
+                        update_by: parseInt(req['user']['id_user'] as any)
+                    }
+                })
+
+            return {
+                status: true,
+                message: '',
+                data: res
+            }
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
+    async getAllPaymentMethodManual(id_setting_company: number): Promise<SettingCompanyModel.GetAllPaymentMethodManual> {
+        try {
+            let res: any[] = await this._prismaService
+                .payment_method_manual
+                .findMany({
+                    where: {
+                        id_setting_company: parseInt(id_setting_company as any),
+                        is_active: true
+                    }
+                });
+
+            return {
+                status: true,
+                message: '',
+                data: res
+            }
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
+    async createPaymentMethodManual(req: Request, payload: SettingCompanyModel.CreatePaymentMethodManual): Promise<any> {
+        try {
+            let res = await this._prismaService
+                .payment_method_manual
+                .create({
+                    data: {
+                        id_setting_company: parseInt(req['user']['id_setting_company'] as any),
+                        payment_method: payload.payment_method,
+                        no_rekening: payload.no_rekening,
+                        create_at: new Date(),
+                        create_by: parseInt(req['user']['id_user'] as any)
+                    }
+                })
+
+            return {
+                status: true,
+                message: '',
+                data: res
+            }
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
+    async updatePaymentMethodManual(req: Request, payload: SettingCompanyModel.UpdatePaymentMethodManual): Promise<any> {
+        try {
+            let res = await this._prismaService
+                .payment_method_manual
+                .update({
+                    where: {
+                        id_payment_method_manual: parseInt(payload.id_payment_method_manual as any)
+                    },
+                    data: {
+                        payment_method: payload.payment_method,
+                        no_rekening: payload.no_rekening,
+                        is_active: payload.is_active,
                         update_at: new Date(),
                         update_by: parseInt(req['user']['id_user'] as any)
                     }

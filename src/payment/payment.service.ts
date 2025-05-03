@@ -1888,7 +1888,7 @@ export class PaymentService {
                     .log_whatsapp_message
                     .create({
                         data: {
-                            id_transaksi: payment.id_payment,
+                            id_invoice: payment.id_invoice,
                             id_setting_company: invoice.pelanggan.id_setting_company,
                             additional_info: payment,
                             sent_at: new Date(),
@@ -1907,7 +1907,7 @@ export class PaymentService {
                 .log_whatsapp_message
                 .create({
                     data: {
-                        id_transaksi: payment.id_payment,
+                        id_invoice: payment.id_invoice,
                         id_setting_company: invoice.pelanggan.id_setting_company,
                         additional_info: payment,
                         sent_at: new Date(),
@@ -1955,9 +1955,13 @@ export class PaymentService {
 
             const dataFromToken = invoice.data;
 
-            const settingCompany = await this._settingCompanyService.getById(parseInt(req['user']['id_setting_company']))
-
-            let is_mitra = settingCompany.status && settingCompany.data.is_mitra && !settingCompany.data.is_cabang;
+            const paymentMethodManual = await this._prismaService
+                .payment_method_manual
+                .findFirst({
+                    where: {
+                        id_payment_method_manual: parseInt(payload.id_payment_method_manual as any)
+                    }
+                });
 
             let res = await this._prismaService
                 .payment
@@ -1966,14 +1970,14 @@ export class PaymentService {
                         id_invoice: dataFromToken.id_invoice,
                         id_pelanggan: dataFromToken.id_pelanggan,
                         id_product: dataFromToken.id_product,
-                        payment_token: is_mitra ? 'TRANSFER BANK' : "CASH",
-                        payment_id: `${is_mitra ? 'TRF' : 'CASH'}-${dataFromToken.invoice_number}`,
-                        payment_number: is_mitra ? settingCompany.data.company_nomor_rekening : `Uang Diterima Sebesar ${payload.payment_amount}`,
+                        payment_token: "MANUAL",
+                        payment_id: `${paymentMethodManual.payment_method}-${dataFromToken.invoice_number}`,
+                        payment_number: paymentMethodManual.no_rekening,
                         payment_date: new Date(),
                         payment_status: "PAID",
-                        payment_method: is_mitra ? settingCompany.data.company_bank_name : "CASH",
+                        payment_method: paymentMethodManual.payment_method,
                         payment_amount: dataFromToken.total,
-                        payment_provider: is_mitra ? 'DIRECT' : "CASH",
+                        payment_provider: "MANUAL",
                         create_at: new Date(),
                         create_by: parseInt(req['user']['id_user'])
                     }

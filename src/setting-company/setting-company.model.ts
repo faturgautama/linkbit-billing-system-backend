@@ -97,4 +97,33 @@ export namespace SettingCompanyModel {
         api_key_pg: string;
         api_key_wa: string;
     }
+
+    export class IPaymentMethodManual {
+        id_payment_method_manual: number;
+        payment_method: string;
+        no_rekening: string;
+        is_active: boolean;
+        create_at: Date;
+        create_by: number;
+        update_at: Date;
+        update_by: number;
+    }
+
+    export class GetAllPaymentMethodManual {
+        status: boolean;
+        message: string;
+        data: IPaymentMethodManual[]
+    }
+
+    export class CreatePaymentMethodManual {
+        payment_method: string;
+        no_rekening: string;
+    }
+
+    export class UpdatePaymentMethodManual {
+        id_payment_method_manual: number;
+        payment_method: string;
+        no_rekening: string;
+        is_active: boolean;
+    }
 }

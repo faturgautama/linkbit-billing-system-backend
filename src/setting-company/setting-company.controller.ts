@@ -86,4 +86,60 @@ export class SettingCompanyController {
             });
         }
     }
+
+    @Get('payment-method-manual/:id_setting_company')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    @ApiResponse({ status: 200, description: 'Success', type: SettingCompanyModel.GetByIdSettingCompany })
+    async getAllPaymentMethodManual(@Param('id_setting_company') id_setting_company: number, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._settingCompanyService.getAllPaymentMethodManual(id_setting_company);
+            return res.status(HttpStatus.OK).json(data);
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
+
+    @Post('payment-method-manual')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    @ApiResponse({ status: 200, description: 'Success', type: SettingCompanyModel.GetAllSettingCompany })
+    async insertPaymentMethodManual(@Body() body: SettingCompanyModel.CreatePaymentMethodManual, @Req() req: Request, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._settingCompanyService.createPaymentMethodManual(req, body);
+            return res.status(HttpStatus.OK).json(data);
+
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
+
+    @Put('payment-method-manual')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    @ApiResponse({ status: 200, description: 'Success', type: SettingCompanyModel.GetByIdSettingCompany })
+    async updatePaymentMethodManual(@Body() body: SettingCompanyModel.UpdatePaymentMethodManual, @Req() req: Request, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._settingCompanyService.updatePaymentMethodManual(req, body);
+            return res.status(HttpStatus.OK).json(data);
+
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
 }

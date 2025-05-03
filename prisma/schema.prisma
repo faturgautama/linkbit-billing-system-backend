@@ -14,12 +14,12 @@ datasource db {
 }
 
 model user {
-    id_user            Int             @id @default(autoincrement())
-    user_group         user_group      @relation(references: [id_user_group], fields: [id_user_group])
+    id_user            Int                 @id @default(autoincrement())
+    user_group         user_group          @relation(references: [id_user_group], fields: [id_user_group])
     id_user_group      Int
-    setting_company    setting_company @relation(references: [id_setting_company], fields: [id_setting_company])
+    setting_company    setting_company     @relation(references: [id_setting_company], fields: [id_setting_company])
     id_setting_company Int
-    username           String          @unique
+    username           String              @unique
     password           String
     full_name          String
     email              String?
@@ -27,13 +27,14 @@ model user {
     phone              String?
     whatsapp           String?
     notes              String?
-    is_active          Boolean         @default(true)
-    create_at          DateTime        @default(now())
+    is_active          Boolean             @default(true)
+    create_at          DateTime            @default(now())
     create_by          Int
     update_at          DateTime?
     update_by          Int?
     last_login         DateTime?
     last_logout        DateTime?
+    log_activity_user  log_activity_user[]
 }
 
 model user_group {
@@ -104,6 +105,20 @@ model setting_company {
     tagihan_kso              tagihan_kso[]
     history_import_pelanggan history_import_pelanggan[]
     product                  product[]
+    payment_method_manual    payment_method_manual[]
+}
+
+model payment_method_manual {
+    id_payment_method_manual Int             @id @default(autoincrement())
+    setting_company          setting_company @relation(fields: [id_setting_company], references: [id_setting_company])
+    id_setting_company       Int
+    payment_method           String
+    no_rekening              String?
+    create_at                DateTime
+    create_by                Int
+    update_at                DateTime?
+    update_by                Int?
+    is_active                Boolean         @default(true)
 }
 
 model product {
@@ -185,14 +200,14 @@ model pelanggan_product {
 }
 
 model invoice {
-    id_invoice           Int               @id @default(autoincrement())
+    id_invoice           Int                    @id @default(autoincrement())
     invoice_number       String
     invoice_date         DateTime
-    pelanggan            pelanggan         @relation(fields: [id_pelanggan], references: [id_pelanggan])
+    pelanggan            pelanggan              @relation(fields: [id_pelanggan], references: [id_pelanggan])
     id_pelanggan         Int
-    pelanggan_product    pelanggan_product @relation(fields: [id_pelanggan_product], references: [id_pelanggan_product])
+    pelanggan_product    pelanggan_product      @relation(fields: [id_pelanggan_product], references: [id_pelanggan_product])
     id_pelanggan_product Int
-    product              product           @relation(fields: [id_product], references: [id_product])
+    product              product                @relation(fields: [id_product], references: [id_product])
     id_product           Int
     price                Float
     diskon_percentage    Float
@@ -203,15 +218,16 @@ model invoice {
     total                Float
     due_date             DateTime
     notes                String?
-    invoice_status       String            @default("PENDING")
-    create_at            DateTime          @default(now())
+    invoice_status       String                 @default("PENDING")
+    create_at            DateTime               @default(now())
     create_by            Int
     update_at            DateTime?
     update_by            Int?
-    is_deleted           Boolean           @default(false)
+    is_deleted           Boolean                @default(false)
     delete_at            DateTime?
     delete_by            Int?
     payment              payment[]
+    log_whatsapp_message log_whatsapp_message[]
 }
 
 model payment {
@@ -257,12 +273,16 @@ model tagihan_kso {
 
 model log_whatsapp_message {
     id_log_whatsapp_message Int             @id @default(autoincrement())
-    id_transaksi            Int
+    invoice                 invoice         @relation(fields: [id_invoice], references: [id_invoice])
+    id_invoice              Int
     setting_company         setting_company @relation(fields: [id_setting_company], references: [id_setting_company])
     id_setting_company      Int
     additional_info         Json?
     sent_at                 DateTime
     sent_by                 Int
+    resent_at               DateTime?
+    resent_by               Int?
+    type                    String?         @default("INVOICE")
     status                  String          @default("SUCCESS")
 }
 
@@ -299,4 +319,16 @@ model template_editor {
     create_by               Int
     update_at               DateTime?
     update_by               Int?
+}
+
+model log_activity_user {
+    id_log_activity_user Int      @id @default(autoincrement())
+    user                 user     @relation(fields: [id_user], references: [id_user])
+    id_user              Int
+    endpoint             String
+    method               String
+    request_body         Json?
+    ip_address           String
+    browser              String
+    create_at            DateTime @default(now())
 }

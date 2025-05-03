@@ -1,7 +1,7 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Scope } from '@nestjs/common';
 import { AxiosError } from 'axios';
-import { catchError, map, Observable } from 'rxjs';
+import { catchError, map, Observable, of } from 'rxjs';
 import { PrismaService } from 'src/prisma.service';
 
 @Injectable({ scope: Scope.TRANSIENT })
@@ -31,7 +31,6 @@ export class AxiosService {
                 console.log("http request data =>", axiosConfig.params);
                 console.log("http request result =>", result);
                 console.log("======================================================");
-
                 return {
                     status: result.status == 200 || result.status == 201 ? true : false,
                     message: result.statusText,
@@ -44,7 +43,11 @@ export class AxiosService {
                 console.log("http request data =>", axiosConfig.params);
                 console.log("http request error =>", error.response.data);
                 console.log("======================================================");
-                throw error;
+                return of({
+                    status: false,
+                    message: error?.response?.statusText ?? 'Unexpected error',
+                    data: error?.response?.data ?? null
+                });
             })
         );
     }

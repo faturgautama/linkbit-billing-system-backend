@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -37,8 +37,12 @@ import { LaporanController } from './laporan/laporan.controller';
 import { LaporanService } from './laporan/laporan.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { InvoiceCronService } from './invoice/invoice-cron.service';
+import { SendMessageCronService } from './invoice/send-message-cron.service';
 import { TemplateEditorController } from './template-editor/template-editor.controller';
 import { TemplateEditorService } from './template-editor/template-editor.service';
+import { ActivityLoggerMiddleware } from './middleware/activity-log.middleware';
+import { LogActivityService } from './log-activity/log-activity.service';
+import { LogActivityController } from './log-activity/log-activity.controller';
 
 @Module({
     imports: [
@@ -64,6 +68,7 @@ import { TemplateEditorService } from './template-editor/template-editor.service
         DashboardController,
         LaporanController,
         TemplateEditorController,
+        LogActivityController,
     ],
     providers: [
         JwtStrategy,
@@ -86,7 +91,14 @@ import { TemplateEditorService } from './template-editor/template-editor.service
         UtilityService,
         AppGateway,
         InvoiceCronService,
-        TemplateEditorService
+        SendMessageCronService,
+        TemplateEditorService,
+        LogActivityService,
     ],
 })
-export class AppModule { }
+export class AppModule {
+
+    configure(consumer: MiddlewareConsumer) {
+        consumer.apply(ActivityLoggerMiddleware).forRoutes('*');
+    }
+}

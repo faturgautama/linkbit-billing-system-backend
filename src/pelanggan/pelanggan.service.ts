@@ -22,7 +22,7 @@ export class PelangganService {
                 }
 
                 if (property == 'is_active') {
-                    aggregate[property] = true;
+                    aggregate[property] = query[property];
                 }
                 return aggregate;
             }, {});
@@ -113,6 +113,30 @@ export class PelangganService {
                 .findUnique({
                     where: { id_pelanggan: parseInt(id_pelanggan as any) }
                 });
+
+            const product_pelanggan = await this._prismaService
+                .pelanggan_product
+                .findFirst({
+                    where: {
+                        id_pelanggan: res.id_pelanggan
+                    },
+                    include: {
+                        product: {
+                            select: {
+                                id_product: true,
+                                product_name: true
+                            }
+                        }
+                    }
+                });
+
+            res.id_pelanggan_product = product_pelanggan ? product_pelanggan.id_pelanggan_product : null;
+            res.product_id = product_pelanggan ? product_pelanggan.product.id_product : null;
+            res.product_name = product_pelanggan ? product_pelanggan.product.product_name : null;
+            res.product_start_date = product_pelanggan ? product_pelanggan.start_date : null;
+            res.product_price = product_pelanggan ? product_pelanggan.price : null;
+            res.product_days_before_send_invoice = product_pelanggan ? product_pelanggan.days_before_send_invoice : null;
+            res.product_invoice_cycle = product_pelanggan ? product_pelanggan.invoice_cycle : null;
 
             return {
                 status: true,
@@ -386,6 +410,9 @@ export class PelangganService {
             const results = [];
 
             for (const row of data) {
+                const phone = row.phone.replace(/^(\+62|0)/, '62');
+                const whatsapp = row.whatsapp.replace(/^(\+62|0)/, '62');
+
                 const pelanggan = await this._prismaService.pelanggan.create({
                     data: {
                         id_setting_company: meta.id_setting_company,
@@ -398,8 +425,8 @@ export class PelangganService {
                         email: row.email || null,
                         password: row.password || null,
                         alamat: row.alamat || null,
-                        phone: row.phone,
-                        whatsapp: row.whatsapp || null,
+                        phone: phone,
+                        whatsapp: whatsapp || null,
                         subscribe_start_date: row.subscribe_start_date
                             ? new Date(row.subscribe_start_date)
                             : null,

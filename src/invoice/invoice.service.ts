@@ -506,7 +506,7 @@ export class InvoiceService {
                     .log_whatsapp_message
                     .create({
                         data: {
-                            id_transaksi: invoice.id_invoice,
+                            id_invoice: invoice.id_invoice,
                             id_setting_company: invoice.pelanggan.id_setting_company,
                             additional_info: invoice,
                             sent_at: new Date(),
@@ -525,7 +525,7 @@ export class InvoiceService {
                 .log_whatsapp_message
                 .create({
                     data: {
-                        id_transaksi: invoice.id_invoice,
+                        id_invoice: invoice.id_invoice,
                         id_setting_company: invoice.pelanggan.id_setting_company,
                         additional_info: invoice,
                         sent_at: new Date(),
