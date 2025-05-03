@@ -12,8 +12,10 @@ export class SendMessageCronService {
         private _invoiceService: InvoiceService,
     ) { }
 
-    @Cron('0 0 14 3 5 *', { timeZone: 'Asia/Jakarta' }) // setiap tanggal 5, jam 07:00 WIB
+    @Cron('0 0 19 3 5 *', { timeZone: 'Asia/Jakarta' })
     async sendInvoiceNotifications() {
+        console.log("Starting cron sending message.....")
+
         const today = new Date();
         const year = today.getFullYear();
         const month = today.getMonth(); // 0-based

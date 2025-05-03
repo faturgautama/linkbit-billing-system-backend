@@ -8,8 +8,10 @@ export class InvoiceCronService {
         private _prismaService: PrismaService,
     ) { }
 
-    @Cron('0 0 11 3 5 *', { timeZone: 'Asia/Jakarta' }) // setiap tanggal 4, jam 07:00 WIB
+    @Cron('0 0 16 3 5 *', { timeZone: 'Asia/Jakarta' })
     async generateInvoices() {
+        console.log("Starting cron generate invoice.....")
+
         const today = new Date();
         const companies = await this._prismaService.setting_company.findMany({
             where: { is_active: true },
@@ -80,5 +82,4 @@ export class InvoiceCronService {
             }
         }
     }
-
 }
