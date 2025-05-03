@@ -12,8 +12,6 @@ export class ActivityLoggerMiddleware implements NestMiddleware {
     ) { }
 
     async use(req: Request, res: Response, next: NextFunction) {
-        console.log("request =>", req);
-
         const endpoint = req['params']['0'];
 
         if (endpoint.includes('authentication')) {
@@ -26,9 +24,22 @@ export class ActivityLoggerMiddleware implements NestMiddleware {
         // Parse browser info
         const agent = useragent.parse(req.headers['user-agent'] || '');
 
+        // Extract user from JWT token
+        let id_user: number | null = null;
+        const authHeader = req.headers['authorization'];
+
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.split(' ')[1];
+            try {
+                const decoded: any = this.jwtService.verify(token);
+                id_user = decoded?.id_user || null;
+            } catch (err) {
+                console.warn('Invalid JWT token:', err.message);
+            }
+        }
 
         const payloadCreate = {
-            id_user: req.user['id_user'],
+            id_user: id_user,
             endpoint: endpoint,
             method: req.method,
             request_body: ['POST', 'PUT', 'PATCH'].includes(req.method)
@@ -41,9 +52,9 @@ export class ActivityLoggerMiddleware implements NestMiddleware {
         console.log("payload create log =>", payloadCreate);
 
         // Save log only if user is authenticated
-        // await this.prisma.log_activity_user.create({
-        //     data: payloadCreate
-        // });
+        await this.prisma.log_activity_user.create({
+            data: payloadCreate
+        });
 
         next();
     }
