@@ -24,18 +24,22 @@ export class ActivityLoggerMiddleware implements NestMiddleware {
         // Parse browser info
         const agent = useragent.parse(req.headers['user-agent'] || '');
 
+        const payloadCreate = {
+            id_user: req.user['id_user'],
+            endpoint: req.originalUrl,
+            method: req.method,
+            request_body: ['POST', 'PUT', 'PATCH'].includes(req.method)
+                ? req.body
+                : {},
+            ip_address: String(ipAddress),
+            browser: agent.toString(),
+        };
+
+        console.log("payload create log =>", payloadCreate);
+
         // Save log only if user is authenticated
         await this.prisma.log_activity_user.create({
-            data: {
-                id_user: req.user['id_user'],
-                endpoint: req.originalUrl,
-                method: req.method,
-                request_body: ['POST', 'PUT', 'PATCH'].includes(req.method)
-                    ? req.body
-                    : {},
-                ip_address: String(ipAddress),
-                browser: agent.toString(),
-            },
+            data: payloadCreate
         });
 
         next();
