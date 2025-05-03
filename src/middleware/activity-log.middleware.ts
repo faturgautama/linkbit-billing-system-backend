@@ -12,9 +12,10 @@ export class ActivityLoggerMiddleware implements NestMiddleware {
     ) { }
 
     async use(req: Request, res: Response, next: NextFunction) {
-        console.log("request =>", req.path);
+        const endpoint = req['params']['0'];
+        console.log("endpoint =>", endpoint);
 
-        if (req.path.includes('authentication')) {
+        if (endpoint.includes('authentication')) {
             return next();
         }
 
@@ -26,7 +27,7 @@ export class ActivityLoggerMiddleware implements NestMiddleware {
 
         const payloadCreate = {
             id_user: req.user['id_user'],
-            endpoint: req.originalUrl,
+            endpoint: endpoint,
             method: req.method,
             request_body: ['POST', 'PUT', 'PATCH'].includes(req.method)
                 ? req.body
