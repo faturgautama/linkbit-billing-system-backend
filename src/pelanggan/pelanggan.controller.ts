@@ -34,6 +34,24 @@ export class PelangganController {
         }
     }
 
+    @Get('not-have-product')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    @ApiResponse({ status: 200, description: 'Success', type: PelangganModel.GetAllPelanggan })
+    async getAllNotHaveProduct(@Query() query: PelangganModel.IPelangganQueryParams, @Req() req: Request, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._pelangganService.getAllNotHaveProduct(req, query);
+            return res.status(HttpStatus.OK).json(data);
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
+
     @Get('retrieve/:id_pelanggan')
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')

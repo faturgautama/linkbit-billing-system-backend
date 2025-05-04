@@ -125,4 +125,40 @@ export class InvoiceController {
             });
         }
     }
+
+    @Get('retrigger-job-invoice')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    @ApiResponse({ status: 200, description: 'Success', type: InvoiceModel.GetByIdInvoice })
+    async retriggerJobInvoice(@Res() res: Response): Promise<any> {
+        try {
+            const data = await this._invoiceService.retriggerJobInvoice();
+            return res.status(HttpStatus.OK).json(data);
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
+
+    @Get('retrigger-job-send-message')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    @ApiResponse({ status: 200, description: 'Success', type: InvoiceModel.GetByIdInvoice })
+    async retriggerJobSendMessage(@Res() res: Response): Promise<any> {
+        try {
+            const data = await this._invoiceService.retriggerJobSendMessage();
+            return res.status(HttpStatus.OK).json(data);
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
 }

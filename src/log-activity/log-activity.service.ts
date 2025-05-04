@@ -24,6 +24,13 @@ export class LogActivityService {
                             }
                         }
                     },
+                    include: {
+                        user: {
+                            select: {
+                                full_name: true
+                            }
+                        }
+                    },
                     orderBy: {
                         create_at: 'asc'
                     },
@@ -32,7 +39,13 @@ export class LogActivityService {
             return {
                 status: true,
                 message: '',
-                data: res
+                data: res.map((item: any) => {
+                    const { user, ...res } = item;
+                    return {
+                        ...res,
+                        full_name: user.full_name
+                    }
+                })
             }
 
         } catch (error) {

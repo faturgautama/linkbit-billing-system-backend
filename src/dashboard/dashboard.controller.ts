@@ -66,4 +66,40 @@ export class DashboardController {
             });
         }
     }
+
+    @Get('payment-yearly/:year')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    @ApiResponse({ status: 200, description: 'Success', type: DashboardModel.GetDashboardPaymentWeekly })
+    async getPaymentYearly(@Param('year') year: string, @Req() req: Request, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._dashboardService.getDashboardPaymentYearly(req, year);
+            return res.status(HttpStatus.OK).json(data);
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
+
+    @Get('latest-payment')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    @ApiResponse({ status: 200, description: 'Success', type: DashboardModel.GetDashboardPaymentWeekly })
+    async getLatestPayment(@Req() req: Request, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._dashboardService.getLatestPayment(req);
+            return res.status(HttpStatus.OK).json(data);
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
 }

@@ -50,14 +50,16 @@ export class ActivityLoggerMiddleware implements NestMiddleware {
                 browser: agent.toString(),
             };
 
-            console.log("payload create log =>", payloadCreate);
-
             // Save log only if user is authenticated
             await this.prisma.log_activity_user.create({
                 data: payloadCreate
             });
 
             next();
+        };
+
+        if (req.method == 'GET') {
+            return next();
         };
     }
 }

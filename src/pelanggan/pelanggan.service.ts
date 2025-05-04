@@ -14,35 +14,110 @@ export class PelangganService {
 
     async getAll(req: Request, query: PelangganModel.IPelangganQueryParams): Promise<PelangganModel.GetAllPelanggan> {
         try {
-            let queries: any = { ...query, is_active: true }
-
-            let newQueries: any = Object.keys(queries).reduce((aggregate, property) => {
+            let newQueries: any = Object.keys(query).reduce((aggregate, property) => {
                 if (property == 'id_group_pelanggan' || property == 'id_setting_company') {
                     aggregate[property] = parseInt(query[property] as any);
                 }
 
                 if (property == 'is_active') {
-                    aggregate[property] = query[property];
+                    aggregate[property] = JSON.parse(query[property] as any)
+                }
+
+                if (property == 'full_name' || property == 'pelanggan_code') {
+                    aggregate[property] = {
+                        contains: query[property],
+                        mode: 'insensitive'
+                    }
                 }
                 return aggregate;
             }, {});
 
-            const setting_company = await this._settingCompanyService.getById(parseInt(req['user']['id_setting_company']));
+            newQueries.id_setting_company = parseInt(req['user']['id_setting_company']);
 
-            if (setting_company.status) {
-                if (!setting_company.data.is_cabang && !setting_company.data.is_mitra) {
-                    if (query.id_setting_company) {
-                        newQueries.id_setting_company = parseInt(query.id_setting_company);
-                    } else {
-                        newQueries.id_setting_company = parseInt(req['user']['id_setting_company']);
+            let res: any[] = await this._prismaService
+                .pelanggan
+                .findMany({
+                    where: newQueries,
+                    orderBy: {
+                        id_pelanggan: 'asc'
+                    },
+                    include: {
+                        pelanggan_product: {
+                            select: {
+                                id_pelanggan_product: true,
+                                id_product: true,
+                                start_date: true,
+                                price: true,
+                                days_before_send_invoice: true,
+                                invoice_cycle: true,
+                                product: {
+                                    select: {
+                                        product_name: true
+                                    }
+                                }
+                            }
+                        }
                     }
-                };
+                });
 
-                // ** Queries id_setting_company
-                if (setting_company.data.is_cabang || setting_company.data.is_mitra) {
-                    newQueries.id_setting_company = parseInt(req['user']['id_setting_company']);
-                }
+            let pelangganArr = [];
+
+            for (let item of res) {
+                const pelanggan_products = item.pelanggan_product.length ? item.pelanggan_product[0] : null;
+                item.id_pelanggan_product = pelanggan_products ? pelanggan_products.id_pelanggan_product : null;
+                item.product_id = pelanggan_products ? pelanggan_products.id_product : null;
+                item.product_name = pelanggan_products ? pelanggan_products.product.product_name : null;
+                item.product_start_date = pelanggan_products ? pelanggan_products.start_date : null;
+                item.product_price = pelanggan_products ? pelanggan_products.price : null;
+                item.product_days_before_send_invoice = pelanggan_products ? pelanggan_products.days_before_send_invoice : null;
+                item.product_invoice_cycle = pelanggan_products ? pelanggan_products.invoice_cycle : null;
+
+                const { pelanggan_product, ...data } = item;
+
+                pelangganArr.push(data);
             }
+
+            return {
+                status: true,
+                message: '',
+                data: pelangganArr
+            }
+
+        } catch (error) {
+            console.log("error =>", error);
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
+    async getAllNotHaveProduct(req: Request, query: PelangganModel.IPelangganQueryParams): Promise<PelangganModel.GetAllPelanggan> {
+        try {
+            let newQueries: any = Object.keys(query).reduce((aggregate, property) => {
+                if (property == 'full_name' || property == 'pelanggan_code') {
+                    aggregate[property] = {
+                        contains: query[property],
+                        mode: 'insensitive'
+                    }
+                }
+                return aggregate;
+            }, {});
+
+            newQueries.is_active = true;
+            newQueries.id_setting_company = parseInt(req['user']['id_setting_company']);
+            newQueries.pelanggan_product = {
+                none: {}
+            };
 
             let res: any[] = await this._prismaService
                 .pelanggan
@@ -410,8 +485,8 @@ export class PelangganService {
             const results = [];
 
             for (const row of data) {
-                const phone = row.phone.replace(/^(\+62|0)/, '62');
-                const whatsapp = row.whatsapp.replace(/^(\+62|0)/, '62');
+                const phone = row.phone ? row.phone.replace(/^(\+62|0)/, '62') : "";
+                const whatsapp = row.whatsapp ? row.whatsapp.replace(/^(\+62|0)/, '62') : "";
 
                 const pelanggan = await this._prismaService.pelanggan.create({
                     data: {

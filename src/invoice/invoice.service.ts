@@ -7,6 +7,8 @@ import { firstValueFrom } from 'rxjs';
 import { AxiosService } from 'src/utility/axios.service';
 import { UtilityService } from 'src/utility/utility.service';
 import { Cron, Interval } from '@nestjs/schedule';
+import { InvoiceCronService } from './invoice-cron.service';
+import { SendMessageCronService } from './send-message-cron.service';
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class InvoiceService {
@@ -17,7 +19,9 @@ export class InvoiceService {
         private _axiosService: AxiosService,
         private _prismaService: PrismaService,
         private _utilityService: UtilityService,
+        private _invoiceCronService: InvoiceCronService,
         private _settingCompanyService: SettingCompanyService,
+        private _sendMessageCronService: SendMessageCronService,
     ) { }
 
     async getAll(req: Request, query: InvoiceModel.IInvoiceQueryParams): Promise<InvoiceModel.GetAllInvoice> {
@@ -547,6 +551,58 @@ export class InvoiceService {
                     message: error.response.data.msg
                 },
                 HttpStatus.BAD_REQUEST
+            );
+        }
+    }
+
+    async retriggerJobInvoice() {
+        try {
+            await this._invoiceCronService.generateInvoices();
+
+            return {
+                status: true,
+                message: 'Job is retriggered',
+                data: null
+            }
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
+    async retriggerJobSendMessage() {
+        try {
+            await this._sendMessageCronService.sendInvoiceNotifications();
+
+            return {
+                status: true,
+                message: 'Job is retriggered',
+                data: null
+            }
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
             );
         }
     }

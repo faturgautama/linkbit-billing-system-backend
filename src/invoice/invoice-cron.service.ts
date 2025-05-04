@@ -8,7 +8,7 @@ export class InvoiceCronService {
         private _prismaService: PrismaService,
     ) { }
 
-    @Cron('0 0 16 3 5 *', { timeZone: 'Asia/Jakarta' })
+    @Cron('0 0 1 * *', { timeZone: 'Asia/Jakarta' })
     async generateInvoices() {
         console.log("Starting cron generate invoice.....")
 
