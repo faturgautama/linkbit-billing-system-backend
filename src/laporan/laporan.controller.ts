@@ -85,6 +85,24 @@ export class LaporanController {
         }
     }
 
+    @Get('rekap-pembayaran-tahunan/:tahun')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    @ApiResponse({ status: 200, description: 'Success', type: LaporanModel.GetRekapPembayaranBulanan })
+    async getAllRekapPembayaranTahunan(@Param('tahun') tahun: string, @Req() req: Request, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._laporanService.getRekapPembayaranTahunan(req, tahun);
+            return res.status(HttpStatus.OK).json(data);
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
+
     @Get('tagihan-kso-mitra/:periode')
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')

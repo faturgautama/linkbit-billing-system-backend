@@ -32,8 +32,8 @@ export class PaymentController {
     }
 
     @Get('retrieve/:id_payment')
-    @UseGuards(JwtGuard)
-    @ApiBearerAuth('token')
+    // @UseGuards(JwtGuard)
+    // @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetByIdPayment })
     async getById(@Param('id_payment') id_payment: number, @Res() res: Response): Promise<any> {
         try {

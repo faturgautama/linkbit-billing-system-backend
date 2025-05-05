@@ -221,7 +221,7 @@ export class LaporanService {
         }
     }
 
-    async getRekapPembayaranBulanan(req: Request, query: LaporanModel.IQueryParamLaporanPembayaran): Promise<LaporanModel.GetRekapPembayaranBulanan> {
+    async getRekapPembayaranBulanan(req: Request, query: LaporanModel.IQueryParamLaporanPembayaran): Promise<any> {
         try {
             if (!query.date) {
                 return {
@@ -241,7 +241,10 @@ export class LaporanService {
                 end: new Date(end_date)
             }).map(day => ({
                 date: format(day, 'yyyy-MM-dd'),
-                total: 0
+                total: 0,
+                cash: 0,
+                xendit: 0,
+                manual: 0,
             }));
 
             let res: any[] = dates,
@@ -268,8 +271,13 @@ export class LaporanService {
                     where: queries,
                     include: {
                         pelanggan: true,
-                    }
+                    },
                 });
+
+            let grandTotal = 0,
+                totalCash = 0,
+                totalManual = 0,
+                totalXendit = 0;
 
             payment.forEach(invoice => {
                 const paymentDate = format(new Date(invoice.create_at), 'yyyy-MM-dd'); // Extract date
@@ -278,13 +286,35 @@ export class LaporanService {
                 const dateEntry = res.find(entry => entry.date === paymentDate);
                 if (dateEntry) {
                     dateEntry.total += invoice.payment_amount;
-                }
+                    grandTotal += invoice.payment_amount;
+
+                    if (invoice.payment_provider == 'XENDIT') {
+                        dateEntry.xendit += invoice.payment_amount;
+                        totalXendit += invoice.payment_amount;
+                    }
+
+                    if (invoice.payment_provider == 'MANUAL' && invoice.payment_method == 'CASH') {
+                        dateEntry.cash += invoice.payment_amount;
+                        totalCash += invoice.payment_amount;
+                    }
+
+                    if (invoice.payment_provider == 'MANUAL' && invoice.payment_method != 'CASH') {
+                        dateEntry.manual += invoice.payment_amount;
+                        totalManual += invoice.payment_amount;
+                    }
+                };
             });
 
             return {
                 status: true,
                 message: '',
-                data: res
+                data: res,
+                sum: {
+                    grand_total: grandTotal,
+                    total_payment_gateway: totalXendit,
+                    total_cash: totalCash,
+                    total_manual: totalManual,
+                }
             };
 
         } catch (error) {
@@ -407,6 +437,78 @@ export class LaporanService {
                         update_by: item.update_by,
                     }
                 })
+            }
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
+    async getRekapPembayaranTahunan(req: Request, year: string): Promise<any> {
+        try {
+            // Ambil semua pelanggan aktif
+            const pelangganList = await this._prismaService.pelanggan.findMany({
+                where: {
+                    is_active: true,
+                    id_setting_company: parseInt(req['user']['id_setting_company'] as any)
+                },
+                include: {
+                    payment: {
+                        where: {
+                            payment_date: {
+                                gte: new Date(`${year}-01-01`),
+                                lte: new Date(`${year}-12-31`)
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Format data menjadi per bulan
+            const report = pelangganList.map((pelanggan, index) => {
+                const row: any = {
+                    no: index + 1,
+                    kode_pelanggan: pelanggan.pelanggan_code,
+                    nama_pelanggan: pelanggan.full_name,
+                    alamat: pelanggan.alamat || "",
+                };
+
+                // Inisialisasi bulan
+                for (let month = 1; month <= 12; month++) {
+                    const monthPayments = pelanggan.payment.filter(p => {
+                        const date = new Date(p.payment_date);
+                        return date.getMonth() + 1 === month;
+                    });
+
+                    const tanggalBayar = monthPayments.length > 0
+                        ? monthPayments[0].payment_date.toISOString().split("T")[0]
+                        : null;
+
+                    const jumlahBayar = monthPayments.reduce((sum, p) => sum + p.payment_amount, 0) || null;
+
+                    row[`tgl_bayar_${month}`] = tanggalBayar;
+                    row[`jumlah_bayar_${month}`] = jumlahBayar;
+                }
+
+                return row;
+            });
+
+            return {
+                status: true,
+                message: '',
+                data: report
             }
 
         } catch (error) {

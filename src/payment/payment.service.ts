@@ -1951,6 +1951,26 @@ export class PaymentService {
                     message: 'Invoice Sudah Terbayar',
                     data: null
                 }
+            };
+
+            const existingPaymentXendit = await this._prismaService
+                .payment
+                .findFirst({
+                    where: {
+                        id_invoice: parseInt(payload.id_invoice as any),
+                        payment_provider: 'XENDIT',
+                        payment_status: 'PENDING'
+                    }
+                });
+
+            if (existingPaymentXendit) {
+                await this._prismaService
+                    .payment
+                    .delete({
+                        where: {
+                            id_payment: parseInt(existingPaymentXendit.id_payment as any)
+                        }
+                    });
             }
 
             const dataFromToken = invoice.data;
