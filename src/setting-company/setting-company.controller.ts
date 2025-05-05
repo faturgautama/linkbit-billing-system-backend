@@ -162,7 +162,7 @@ export class SettingCompanyController {
             const BACKUP_PATH = path.join(__dirname, '..', filename);
 
             exec(
-                `pg_dump -U ${DB_USER} -h ${DB_HOST} ${DB_NAME} > ${BACKUP_PATH}`,
+                `pg_dump -U ${DB_USER} -h ${DB_HOST} -p 5432 ${DB_NAME} > ${BACKUP_PATH}`,
                 { env: { ...process.env, PGPASSWORD: DB_PASSWORD } },
                 (error, stdout, stderr) => {
                     if (error) {
