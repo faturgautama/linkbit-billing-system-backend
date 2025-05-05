@@ -95,6 +95,9 @@ export class InvoiceService {
                             },
                         },
                         payment: {
+                            where: {
+                                payment_status: 'PAID',
+                            },
                             select: {
                                 id_payment: true,
                                 create_at: true,
