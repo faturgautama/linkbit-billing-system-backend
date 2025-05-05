@@ -333,7 +333,7 @@ export class PaymentService {
                             include: {
                                 pelanggan: {
                                     include: {
-                                        setting_company: true
+                                        setting_company: true,
                                     }
                                 }
                             }

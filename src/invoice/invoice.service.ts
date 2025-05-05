@@ -172,7 +172,7 @@ export class InvoiceService {
         }
     }
 
-    async getById(id_invoice: number): Promise<InvoiceModel.GetByIdInvoice> {
+    async getById(id_invoice: number): Promise<any> {
         try {
             let res: any = await this._prismaService
                 .invoice
@@ -183,6 +183,7 @@ export class InvoiceService {
                             select: {
                                 id_pelanggan: true,
                                 full_name: true,
+                                alamat: true,
                                 pelanggan_code: true,
                                 whatsapp: true,
                                 setting_company: {
@@ -222,6 +223,7 @@ export class InvoiceService {
                     id_setting_company: res.pelanggan.setting_company.id_setting_company,
                     company_name: res.pelanggan.setting_company.company_name,
                     full_name: res.pelanggan.full_name,
+                    alamat: res.pelanggan.alamat,
                     pelanggan_code: res.pelanggan.pelanggan_code,
                     whatsapp: res.pelanggan.whatsapp,
                     id_pelanggan_product: res.id_pelanggan_product,

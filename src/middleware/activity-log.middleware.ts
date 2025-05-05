@@ -14,7 +14,7 @@ export class ActivityLoggerMiddleware implements NestMiddleware {
     async use(req: Request, res: Response, next: NextFunction) {
         const endpoint = req['params']['0'];
 
-        if (endpoint.includes('authentication')) {
+        if (endpoint.includes('authentication') || endpoint.includes('create-payment') || endpoint.includes("callback")) {
             return next();
         };
 
