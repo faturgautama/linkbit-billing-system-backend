@@ -4,6 +4,9 @@ import { SettingCompanyService } from './setting-company.service';
 import { JwtGuard } from 'src/authentication/jwt.guard';
 import { Request, Response } from 'express';
 import { SettingCompanyModel } from './setting-company.model';
+import { exec } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Controller('setting-company')
 @ApiTags('Setting Company')
@@ -132,6 +135,43 @@ export class SettingCompanyController {
         try {
             const data = await this._settingCompanyService.updatePaymentMethodManual(req, body);
             return res.status(HttpStatus.OK).json(data);
+
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
+
+    @Get('backup-database')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    async backupDatabase(@Res() res: Response): Promise<any> {
+        try {
+            const DB_NAME = process.env.DATABASE_NAME;
+            const DB_USER = process.env.DATABASE_USER;
+            const DB_PASSWORD = process.env.DATABASE_PASSWORD;
+            const DB_HOST = process.env.DATABASE_HOST;
+
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const filename = `backup_${DB_NAME}_${timestamp}.sql`;
+
+            const BACKUP_PATH = path.join(__dirname, '..', filename);
+
+            exec(
+                `pg_dump -U ${DB_USER} -h ${DB_HOST} ${DB_NAME} > ${BACKUP_PATH}`,
+                { env: { ...process.env, PGPASSWORD: DB_PASSWORD } },
+                (error, stdout, stderr) => {
+                    if (error) {
+                        console.error(`Backup failed: ${error.message}`);
+                        return;
+                    }
+                    console.log('Database backup created successfully at:', BACKUP_PATH);
+                }
+            );
 
         } catch (error) {
             const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
