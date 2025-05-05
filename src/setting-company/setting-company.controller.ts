@@ -157,9 +157,7 @@ export class SettingCompanyController {
             const DB_HOST = process.env.DATABASE_HOST;
 
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const filename = `backup_${DB_NAME}_${timestamp}.sql`;
-
-            const BACKUP_PATH = path.join(__dirname, '..', filename);
+            const BACKUP_PATH = `/home/billing-system-fg-linkbit/backup/backup_${DB_NAME}_${timestamp}.sql`;
 
             exec(
                 `pg_dump -U ${DB_USER} -h ${DB_HOST} -p 5432 ${DB_NAME} > ${BACKUP_PATH}`,
@@ -167,9 +165,18 @@ export class SettingCompanyController {
                 (error, stdout, stderr) => {
                     if (error) {
                         console.error(`Backup failed: ${error.message}`);
-                        return;
+                        return {
+                            status: false,
+                            message: `Backup failed: ${error.message}`,
+                            data: null
+                        }
+                    };
+
+                    return {
+                        status: true,
+                        message: `Database backup created successfully at : ${BACKUP_PATH}`,
+                        data: []
                     }
-                    console.log('Database backup created successfully at:', BACKUP_PATH);
                 }
             );
 
