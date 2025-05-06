@@ -15,9 +15,10 @@ export class SendMessageCronService {
         private _utilityService: UtilityService,
     ) { }
 
-    @Cron('0 33 21 6 * *', { timeZone: 'Asia/Jakarta', name: 'send_invoice_notifications' })
+    @Cron('0 0 7 7 * *', { timeZone: 'Asia/Jakarta', name: 'send_invoice_notifications' })
     async sendInvoiceNotifications() {
-        console.log("Starting cron sending message.....")
+        console.log("Starting cron sending message.....");
+        console.log("Starting at : ", new Date());
 
         const today = new Date();
         const year = today.getFullYear();
@@ -46,8 +47,7 @@ export class SendMessageCronService {
         });
 
         for (const invoice of invoices) {
-            // await this.sendMessage(invoice);
-            console.log("sending invoice to =>", invoice.pelanggan.full_name);
+            await this.sendMessage(invoice);
             await this.sleep(20000); // tunggu 20 detik
         }
     }
