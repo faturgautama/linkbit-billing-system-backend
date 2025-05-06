@@ -15,7 +15,7 @@ export class SendMessageCronService {
         private _utilityService: UtilityService,
     ) { }
 
-    @Cron('* * * * * *', { timeZone: 'Asia/Jakarta', name: 'send_invoice_notifications' })
+    @Cron('* 25 21 6 * *', { timeZone: 'Asia/Jakarta', name: 'send_invoice_notifications' })
     async sendInvoiceNotifications() {
         console.log("Starting cron sending message.....")
 
