@@ -7,7 +7,7 @@ export class ImageHelperService {
     getBase64Image(imageName: string): string {
         try {
             // Path to the image in assets folder
-            const imagePath = path.join(__dirname, '..', 'assets', imageName);
+            const imagePath = path.join(__dirname, '..', '..', 'assets', imageName);
 
             // Read image file as buffer
             const imageBuffer = fs.readFileSync(imagePath);
