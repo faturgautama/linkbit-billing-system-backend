@@ -326,7 +326,6 @@ export class PaymentService {
                 .findFirst({
                     where: {
                         id_invoice: parseInt(data.id_invoice ? data.id_invoice : data),
-                        payment_status: 'PENDING',
                     },
                     include: {
                         invoice: {

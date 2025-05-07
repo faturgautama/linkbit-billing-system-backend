@@ -15,7 +15,7 @@ export class SendMessageCronService {
         private _utilityService: UtilityService,
     ) { }
 
-    @Cron('0 0 7 7 * *', { timeZone: 'Asia/Jakarta', name: 'send_invoice_notifications' })
+    @Cron('0 25 10 7 * *', { timeZone: 'Asia/Jakarta', name: 'send_invoice_notifications' })
     async sendInvoiceNotifications() {
         console.log("Starting cron sending message.....");
         console.log("Starting at : ", new Date());
@@ -26,7 +26,7 @@ export class SendMessageCronService {
 
         // Rentang waktu: 4 tanggal bulan ini (00:00:00) s.d. 5 tanggal bulan ini (00:00:00)
         const start = new Date(year, month, 1, 0, 0, 0);
-        const end = new Date(year, month, 5, 0, 0, 0);
+        const end = new Date(year, month, 6, 0, 0, 0);
 
         const invoices = await this._prismaService.invoice.findMany({
             where: {
@@ -35,6 +35,7 @@ export class SendMessageCronService {
                     lt: end,
                 },
                 is_deleted: false,
+                invoice_status: 'PENDING',
             },
             include: {
                 pelanggan: {
@@ -46,7 +47,10 @@ export class SendMessageCronService {
             }
         });
 
+        console.log("total invoice =>", invoices.length);
+
         for (const invoice of invoices) {
+            console.log("invoice =>", invoice);
             await this.sendMessage(invoice);
             await this.sleep(20000); // tunggu 20 detik
         }
