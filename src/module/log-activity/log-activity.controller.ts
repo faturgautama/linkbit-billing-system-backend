@@ -1,4 +1,4 @@
-import { Controller, Get, HttpStatus, Param, Put, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Param, Put, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { LogActivityService } from './log-activity.service';
 import { LogActivityModel } from './log-activity.model';
 import { ApiTags, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
@@ -17,9 +17,9 @@ export class LogActivityController {
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: LogActivityModel.GetAllLogActivity })
-    async getAllLogActivity(@Req() req: Request, @Res() res: Response): Promise<any> {
+    async getAllLogActivity(@Query() query: LogActivityModel.ILogQueryParams, @Req() req: Request, @Res() res: Response): Promise<any> {
         try {
-            const data = await this._logActivityService.getAllLogActivity(req);
+            const data = await this._logActivityService.getAllLogActivity(req, query);
             return res.status(HttpStatus.OK).json(data);
         } catch (error) {
             const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
@@ -35,9 +35,9 @@ export class LogActivityController {
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: LogActivityModel.GetAllLogSendMessage })
-    async getAllLogSendMessage(@Req() req: Request, @Res() res: Response): Promise<any> {
+    async getAllLogSendMessage(@Query() query: LogActivityModel.ILogQueryParams, @Req() req: Request, @Res() res: Response): Promise<any> {
         try {
-            const data = await this._logActivityService.getAllLogSendMessage(req);
+            const data = await this._logActivityService.getAllLogSendMessage(req, query);
             return res.status(HttpStatus.OK).json(data);
         } catch (error) {
             const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;

@@ -102,6 +102,8 @@ export class SendMessageCronService {
 
         console.log("result send wa =>", mpwaSendMessageResult);
 
+        const { product, pelanggan, ...payloadLog } = invoice;
+
         if (!mpwaSendMessageResult.status) {
             await this._prismaService
                 .log_whatsapp_message
@@ -109,7 +111,7 @@ export class SendMessageCronService {
                     data: {
                         id_invoice: invoice.id_invoice,
                         id_setting_company: invoice.pelanggan.id_setting_company,
-                        additional_info: invoice,
+                        additional_info: payloadLog,
                         sent_at: new Date(),
                         sent_by: invoice.create_by,
                         status: 'FAILED'
@@ -122,7 +124,7 @@ export class SendMessageCronService {
                     data: {
                         id_invoice: invoice.id_invoice,
                         id_setting_company: invoice.pelanggan.id_setting_company,
-                        additional_info: invoice,
+                        additional_info: payloadLog,
                         sent_at: new Date(),
                         sent_by: invoice.create_by,
                         status: 'SUCCESS'

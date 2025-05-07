@@ -1,4 +1,11 @@
 export namespace LogActivityModel {
+    export class ILogQueryParams {
+        full_name?: string;
+        create_at?: string;
+        sent_at?: string;
+        status?: string;
+    }
+
     export class ILogActivity {
         id_log_activity_user: number;
         id_user: number;
@@ -16,7 +23,6 @@ export namespace LogActivityModel {
         message: string;
         data: ILogActivity[]
     }
-
 
     export class ILogSendMessage {
         id_log_whatsapp_message: number;
