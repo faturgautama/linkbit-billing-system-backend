@@ -26,9 +26,6 @@ export class AxiosService {
 
         return this._httpService.request(axiosConfig).pipe(
             map(result => {
-                console.log("======================================================");
-                console.log("http request result =>", result);
-                console.log("======================================================");
                 return {
                     status: result.status == 200 || result.status == 201 ? true : false,
                     message: result.statusText,
@@ -36,9 +33,6 @@ export class AxiosService {
                 };
             }),
             catchError((error: any) => {
-                console.log("======================================================");
-                console.log("http request error =>", error.response.data);
-                console.log("======================================================");
                 return of({
                     status: false,
                     message: error?.response?.statusText ?? 'Unexpected error',

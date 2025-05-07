@@ -348,7 +348,7 @@ export class PaymentService {
                 }
             };
 
-            if (checkIsPaymentExist.payment_method != 'QRIS') {
+            if (checkIsPaymentExist.payment_provider != 'MANUAL' && checkIsPaymentExist.payment_method != 'QRIS') {
                 const checkExpiredXenditPayload = {
                     method: 'get',
                     url: `${process.env.XENDIT_URL}/callback_virtual_accounts/${checkIsPaymentExist.payment_id}`,
@@ -1853,13 +1853,11 @@ export class PaymentService {
                 invoice_date: this._utilityService.onFormatDate(new Date(invoice.invoice_date), 'MMM yyyy'),
                 invoice_number: invoice.invoice_number,
                 total: this._utilityService.onFormatCurrency(invoice.total),
-                invoice_url: `${process.env.CHECKOUT_URL}/paid?token=${token}`,
+                invoice_url: `${process.env.INVOICE_DIGITAL_URL}?token=${token}`,
             };
 
             const template = invoice.pelanggan.setting_company.tagihan_pesan_lunas;
-
             const newTemplate = template.replace(/\${(.*?)}/g, (_, key) => messageVariable[key.trim()] || "");
-
             const messageText = newTemplate
                 .replace(/<\/p>\s*<p>/g, '\n') // Replace consecutive <p> tags with a single line break
                 .replace(/<\/?[^>]+(>|$)/g, "") // Remove any remaining HTML tags

@@ -50,6 +50,23 @@ export class InvoiceController {
         }
     }
 
+    @Get('get-invoice-digital/:token')
+    @ApiResponse({ status: 200, description: 'Success', type: InvoiceModel.GetByIdInvoice })
+    async getInvoiceDigital(@Param('token') token: string, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._invoiceService.getFromToken(token);
+            return res.status(HttpStatus.OK).json(data);
+
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
+
     @Post()
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')

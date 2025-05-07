@@ -269,6 +269,102 @@ export class InvoiceService {
         }
     }
 
+    async getFromToken(token: string): Promise<any> {
+        try {
+            const data = this._utilityService.onDecrypt(token);
+
+            if (!data) {
+                return {
+                    status: false,
+                    message: 'Token Is Invalid',
+                    data: null
+                }
+            };
+
+            let res: any = await this._prismaService
+                .invoice
+                .findUnique({
+                    where: { id_invoice: parseInt(data.id_invoice ? data.id_invoice : data) },
+                    include: {
+                        pelanggan: {
+                            select: {
+                                id_pelanggan: true,
+                                full_name: true,
+                                alamat: true,
+                                pelanggan_code: true,
+                                whatsapp: true,
+                                setting_company: {
+                                    select: {
+                                        id_setting_company: true,
+                                        company_name: true,
+                                        tagihan_editor_invoice: true,
+                                    }
+                                }
+                            }
+                        },
+                        product: {
+                            select: {
+                                id_product: true,
+                                product_name: true,
+                            },
+                        },
+                    },
+                });
+
+            const formattedRes = {
+                id_invoice: res.id_invoice,
+                invoice_number: res.invoice_number,
+                invoice_date: this._utilityService.onFormatDate(res.invoice_date, 'MMMM yyyy'),
+                id_pelanggan: res.id_pelanggan,
+                id_setting_company: res.pelanggan.setting_company.id_setting_company,
+                company_name: res.pelanggan.setting_company.company_name,
+                full_name: res.pelanggan.full_name,
+                alamat: res.pelanggan.alamat,
+                pelanggan_code: res.pelanggan.pelanggan_code,
+                whatsapp: res.pelanggan.whatsapp,
+                id_pelanggan_product: res.id_pelanggan_product,
+                id_product: res.id_product,
+                product_name: res.product.product_name,
+                price: this._utilityService.onFormatCurrency(res.price),
+                diskon_percentage: res.diskon_percentage,
+                diskon_rupiah: this._utilityService.onFormatCurrency(res.diskon_rupiah),
+                pajak: this._utilityService.onFormatCurrency(res.pajak),
+                admin_fee: this._utilityService.onFormatCurrency(res.admin_fee),
+                unique_code: res.unique_code,
+                total: this._utilityService.onFormatCurrency(res.total),
+                due_date: this._utilityService.onFormatDate(res.due_date, 'DD-MM-yyyy'),
+                notes: res.notes,
+                invoice_status: res.invoice_status,
+                create_at: this._utilityService.onFormatDate(res.create_at, 'DD-MM-yyyy'),
+            };
+
+            console.log("formatted res =>", formattedRes);
+
+            const template = res.pelanggan.setting_company.tagihan_editor_invoice;
+            const newTemplate = template.replace(/\${(.*?)}/g, (_, key) => formattedRes[key.trim()] || "");
+            return {
+                status: true,
+                message: '',
+                data: newTemplate
+            }
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
     async create(req: Request, payload: InvoiceModel.CreateInvoice): Promise<any> {
         try {
             const queryDate = new Date(payload.invoice_date);
