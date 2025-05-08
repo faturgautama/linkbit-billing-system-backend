@@ -12,8 +12,13 @@ export class ImageHelperService {
             // Read image file as buffer
             const imageBuffer = fs.readFileSync(imagePath);
 
+            if (!imageBuffer) {
+                return "";
+            }
+
             // Convert to Base64
             return `data:image/png;base64,${imageBuffer.toString('base64')}`;
+
         } catch (error) {
             throw new Error('Error reading image: ' + error.message);
         }

@@ -497,8 +497,6 @@ export class PaymentService {
                 }
             };
 
-            console.log("decrypted data =>", decryptedData);
-
             const invoice = await this._invoiceService.getById(parseInt(decryptedData));
 
             if (!invoice.status) {
@@ -568,7 +566,8 @@ export class PaymentService {
                                     payment_method_type: 'QRIS',
                                     payment_method_name: 'QRIS',
                                     payment_method_code: 'QRIS',
-                                    image: this._imageHelperService.getBase64Image('qris.png')
+                                    image: this._imageHelperService.getBase64Image('qris.png'),
+                                    payment_method_fee: parseFloat(process.env.XENDIT_QR_FEE)
                                 },
                                 ...result.data.map((item: any) => {
                                     return {
@@ -576,7 +575,8 @@ export class PaymentService {
                                         payment_method_name: item.name,
                                         payment_method_code: item.code,
                                         payment_method_instruction: this.getPaymentMethodCaraBayar(item.code),
-                                        image: this._imageHelperService.getBase64Image(item.code.toLowerCase() + '.png')
+                                        image: this._imageHelperService.getBase64Image(item.code.toLowerCase() + '.png'),
+                                        payment_method_fee: parseFloat(process.env.XENDIT_VA_FEE)
                                     }
                                 })
                             ];
@@ -738,6 +738,18 @@ export class PaymentService {
                 }
             };
 
+            const FEE_AMOUNT = {
+                VA: process.env.XENDIT_VA_FEE ? parseInt(process.env.XENDIT_VA_FEE) : 0,
+                QR: process.env.XENDIT_QR_FEE ? parseFloat(process.env.XENDIT_QR_FEE) : 0,
+            };
+
+            let total_invoice = payload.payment_amount,
+                expected_amount = payload.payment_method_type == 'QRIS'
+                    ? total_invoice + (total_invoice * (FEE_AMOUNT.QR / 100))
+                    : total_invoice + FEE_AMOUNT.VA;
+
+
+
             const createVirtualAccountParams = {
                 method: 'post',
                 url: `${process.env.XENDIT_URL}/callback_virtual_accounts`,
@@ -752,7 +764,7 @@ export class PaymentService {
                     currency: 'IDR',
                     is_single_use: true,
                     is_closed: true,
-                    expected_amount: payload.payment_amount,
+                    expected_amount: expected_amount,
                     callback_url: process.env.XENDIT_CALLBACK_URL
                 }
             };
@@ -769,7 +781,7 @@ export class PaymentService {
                     reference_id: dataFromToken.invoice_number,
                     type: 'DYNAMIC',
                     currency: 'IDR',
-                    amount: payload.payment_amount,
+                    amount: expected_amount,
                     callback_url: process.env.XENDIT_CALLBACK_URL
                 }
             };
@@ -803,7 +815,7 @@ export class PaymentService {
                         create_at: new Date(),
                         create_by: dataFromToken.id_pelanggan
                     }
-                })
+                });
 
             return {
                 status: true,
@@ -958,6 +970,15 @@ export class PaymentService {
                 }
             };
 
+            const FEE_AMOUNT = {
+                VA: process.env.XENDIT_VA_FEE ? parseInt(process.env.XENDIT_VA_FEE) : 0,
+                QR: process.env.XENDIT_QR_FEE ? parseFloat(process.env.XENDIT_QR_FEE) : 0,
+            };
+
+            let admin_fee = updatePayment.payment_method == 'QRIS'
+                ? (parseFloat(updatePayment.payment_amount as any) * (FEE_AMOUNT.QR / 100))
+                : parseFloat(updatePayment.payment_amount as any) + FEE_AMOUNT.VA;
+
             const updateInvoice = await this._prismaService
                 .invoice
                 .update({
@@ -966,6 +987,7 @@ export class PaymentService {
                     },
                     data: {
                         invoice_status: 'PAID',
+                        admin_fee: parseFloat(admin_fee as any)
                     }
                 });
 
@@ -1041,6 +1063,15 @@ export class PaymentService {
                 }
             };
 
+            const FEE_AMOUNT = {
+                VA: process.env.XENDIT_VA_FEE ? parseInt(process.env.XENDIT_VA_FEE) : 0,
+                QR: process.env.XENDIT_QR_FEE ? parseFloat(process.env.XENDIT_QR_FEE) : 0,
+            };
+
+            let admin_fee = updatePayment.payment_method == 'QRIS'
+                ? (parseFloat(updatePayment.payment_amount as any) * (FEE_AMOUNT.QR / 100))
+                : parseFloat(updatePayment.payment_amount as any) + FEE_AMOUNT.VA;
+
             const updateInvoice = await this._prismaService
                 .invoice
                 .update({
@@ -1049,6 +1080,7 @@ export class PaymentService {
                     },
                     data: {
                         invoice_status: 'PAID',
+                        admin_fee: parseFloat(admin_fee as any)
                     }
                 });
 
