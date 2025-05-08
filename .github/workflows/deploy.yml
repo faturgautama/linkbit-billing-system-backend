@@ -1,14 +1,15 @@
-name: Deploy Staging
+name: Deploy Core Service
 
 on:
   push:
     branches:
-      - staging # Run only when staging is updated
+      - staging
+      - main
 
 jobs:
-  deploy:
+  deploy-staging:
+    if: github.ref == 'refs/heads/staging'
     runs-on: ubuntu-latest
-
     steps:
       - name: 🔄 Checkout Repository
         uses: actions/checkout@v3
@@ -21,3 +22,19 @@ jobs:
           password: ${{ secrets.PASSWORD }}
           port: ${{ secrets.PORT }}
           script: /home/billing-system-fg-linkbit/deployer/staging-core-deployer.sh
+
+  deploy-production:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔄 Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: 🚀 Deploy to Production Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          port: ${{ secrets.PORT }}
+          script: /home/billing-system-fg-linkbit/deployer/prod-core-deployer.sh
