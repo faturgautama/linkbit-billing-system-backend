@@ -34,7 +34,7 @@ export class AxiosService {
             }),
             catchError((error: any) => {
                 console.log("==============================================")
-                console.log("axios error =>", error);
+                console.log("axios error =>", error.response.data);
 
                 return of({
                     status: false,

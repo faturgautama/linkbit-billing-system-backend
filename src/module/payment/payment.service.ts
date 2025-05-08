@@ -781,7 +781,7 @@ export class PaymentService {
                     reference_id: dataFromToken.invoice_number,
                     type: 'DYNAMIC',
                     currency: 'IDR',
-                    amount: expected_amount,
+                    amount: Math.ceil(expected_amount),
                     callback_url: process.env.XENDIT_CALLBACK_URL
                 }
             };
@@ -810,7 +810,7 @@ export class PaymentService {
                         payment_date: new Date(),
                         payment_status: payload.payment_method_code == 'QRIS' ? 'PENDING' : xenditPaymentResult.data.status,
                         payment_method: payload.payment_method_code,
-                        payment_amount: payload.payment_amount,
+                        payment_amount: expected_amount,
                         payment_provider: 'XENDIT',
                         create_at: new Date(),
                         create_by: dataFromToken.id_pelanggan
