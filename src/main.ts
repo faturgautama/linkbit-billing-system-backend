@@ -17,7 +17,7 @@ async function bootstrap() {
 
     const config = new DocumentBuilder()
         .setTitle('LINKBIT BILLING SYSTEM')
-        .setDescription('Linkbit Billing System API Service')
+        .setDescription('Linkbit Billing System Webservice v0.0.1')
         .setVersion('1.0')
         .addTag('api')
         .addBearerAuth(
