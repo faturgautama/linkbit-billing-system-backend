@@ -473,7 +473,7 @@ export class InvoiceService {
                     }
                 });
 
-            if (findPayment && findPayment.id_payment) {
+            if (findPayment) {
                 if (findPayment.payment_status == 'PAID') {
                     return {
                         status: false,
@@ -484,14 +484,9 @@ export class InvoiceService {
 
                 const cancelPaymentPending = await this._prismaService
                     .payment
-                    .update({
+                    .delete({
                         where: {
                             id_payment: parseInt(findPayment.id_payment as any)
-                        },
-                        data: {
-                            payment_status: 'CANCELED',
-                            update_at: new Date(),
-                            update_by: parseInt(req['user']['id_user'] as any)
                         }
                     });
 
@@ -509,6 +504,7 @@ export class InvoiceService {
                 .update({
                     where: { id_invoice: parseInt(id_invoice as any) },
                     data: {
+                        invoice_status: 'CANCELED',
                         is_deleted: true,
                         delete_at: new Date(),
                         delete_by: parseInt(req['user']['id_user'] as any)
@@ -522,6 +518,8 @@ export class InvoiceService {
             }
 
         } catch (error) {
+            console.log("error =>", error);
+
             const status = error.message.includes('not found')
                 ? HttpStatus.NOT_FOUND
                 : error.message.includes('bad request')
