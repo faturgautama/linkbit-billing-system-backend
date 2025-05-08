@@ -354,6 +354,8 @@ export class PaymentService {
                     }
                 });
 
+            console.log("user entry =>", userEntry);
+
             if (checkIsPaymentExist.payment_provider != 'MANUAL' && checkIsPaymentExist.payment_method != 'QRIS') {
                 const checkExpiredXenditPayload = {
                     method: 'get',
@@ -372,13 +374,16 @@ export class PaymentService {
                         data: null
                     }
                 }
-            }
+            };
 
             return {
                 status: true,
                 data: {
                     ...invoice.data,
-                    payment: { ...checkIsPaymentExist, user_entry: checkIsPaymentExist.create_by == 9999 ? 'SISTEM' : userEntry.full_name },
+                    payment: {
+                        ...checkIsPaymentExist,
+                        user_entry: checkIsPaymentExist.create_by == 9999 ? 'SISTEM' : (userEntry ? userEntry.full_name : 'SISTEM')
+                    },
                     is_payment_generated: true,
                 },
                 message: ''

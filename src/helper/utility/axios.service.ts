@@ -33,6 +33,9 @@ export class AxiosService {
                 };
             }),
             catchError((error: any) => {
+                console.log("==============================================")
+                console.log("axios error =>", error);
+
                 return of({
                     status: false,
                     message: error?.response?.statusText ?? 'Unexpected error',
