@@ -39,6 +39,6 @@ export class UtilityService {
     }
 
     onFormatCurrency(number: any): any {
-        return `Rp${numeral(number).format('0,0.00')}`;
+        return `Rp${numeral(number).format('0,0')}`;
     }
 }
