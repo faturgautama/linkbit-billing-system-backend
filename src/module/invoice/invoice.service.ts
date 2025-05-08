@@ -573,6 +573,7 @@ export class InvoiceService {
                 invoice_number: invoice.invoice_number,
                 total: this._utilityService.onFormatCurrency(invoice.total),
                 checkout_url: `${process.env.CHECKOUT_URL}?token=${token}`,
+                invoice_digital_url: `${process.env.INVOICE_DIGITAL_URL}?token=${token}`,
             }
 
             const template = invoice.pelanggan.setting_company.tagihan_pesan_invoice;

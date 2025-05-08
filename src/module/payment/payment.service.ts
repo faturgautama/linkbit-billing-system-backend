@@ -138,8 +138,6 @@ export class PaymentService {
             }
 
         } catch (error) {
-            console.log("error =>", error);
-
             const status = error.message.includes('not found')
                 ? HttpStatus.NOT_FOUND
                 : error.message.includes('bad request')
@@ -242,6 +240,7 @@ export class PaymentService {
                     create_by: res.create_by,
                     update_at: res.update_at,
                     update_by: res.update_by,
+                    token: this._utilityService.onEncrypt(JSON.stringify({ id_invoice: res.id_invoice }))
                 }
             }
 
@@ -321,7 +320,7 @@ export class PaymentService {
 
             let invoice = await this._invoiceService.getById(parseInt(data.id_invoice ? data.id_invoice : data));
 
-            const checkIsPaymentExist = await this._prismaService
+            let checkIsPaymentExist = await this._prismaService
                 .payment
                 .findFirst({
                     where: {
@@ -348,6 +347,13 @@ export class PaymentService {
                 }
             };
 
+            const userEntry = await this._prismaService.user
+                .findFirst({
+                    where: {
+                        id_user: parseInt(checkIsPaymentExist.create_by as any)
+                    }
+                });
+
             if (checkIsPaymentExist.payment_provider != 'MANUAL' && checkIsPaymentExist.payment_method != 'QRIS') {
                 const checkExpiredXenditPayload = {
                     method: 'get',
@@ -370,7 +376,11 @@ export class PaymentService {
 
             return {
                 status: true,
-                data: { ...invoice.data, payment: checkIsPaymentExist, is_payment_generated: true, },
+                data: {
+                    ...invoice.data,
+                    payment: { ...checkIsPaymentExist, user_entry: checkIsPaymentExist.create_by == 9999 ? 'SISTEM' : userEntry.full_name },
+                    is_payment_generated: true,
+                },
                 message: ''
             }
 
