@@ -1067,7 +1067,7 @@ export class PaymentService {
                 .payment
                 .findFirst({
                     where: {
-                        id_payment: payload.event ? payload.data.id : payload.payment_id
+                        payment_id: id
                     }
                 });
 
