@@ -14,6 +14,7 @@ export class ProductService {
         try {
             let queries = {
                 ...query,
+                is_active: true,
                 id_setting_company: parseInt(req['user']['id_setting_company'])
             }
 
@@ -23,6 +24,10 @@ export class ProductService {
                     where: Object.keys(queries).reduce((aggregate, property) => {
                         if (property == 'price' || property == 'id_setting_company') {
                             aggregate[property] = parseInt(queries[property] as any);
+                        };
+
+                        if (property == 'is_active') {
+                            aggregate[property] = true;
                         }
                         return aggregate;
                     }, {}),

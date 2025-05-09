@@ -1051,6 +1051,18 @@ export class PaymentService {
 
     async paymentCallback(payload: any): Promise<any> {
         try {
+            const paymentMethod = payload.event.includes('qr') ? 'QRIS' : 'VA';
+
+            let id = "";
+
+            if (paymentMethod == 'QRIS') {
+                id = payload.data ? payload.data.id : payload.qr_code.id;
+            };
+
+            if (paymentMethod == 'VA') {
+                id = payload.payment_id;
+            };
+
             const payment = await this._prismaService
                 .payment
                 .findFirst({
@@ -1076,7 +1088,7 @@ export class PaymentService {
                     data: {
                         payment_status: 'PAID',
                         update_at: new Date(),
-                        update_by: 1,
+                        update_by: 9999,
                     }
                 });
 
