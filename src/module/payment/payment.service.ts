@@ -354,8 +354,6 @@ export class PaymentService {
                     }
                 });
 
-            console.log("user entry =>", userEntry);
-
             if (checkIsPaymentExist.payment_provider != 'MANUAL' && checkIsPaymentExist.payment_method != 'QRIS') {
                 const checkExpiredXenditPayload = {
                     method: 'get',
@@ -542,52 +540,79 @@ export class PaymentService {
                 }
             };
 
-            const params = {
-                method: 'get',
-                url: `${process.env.XENDIT_URL}/available_virtual_account_banks`,
-                headers: {
-                    'Authorization': `Basic ${Buffer.from(`${settingCompany.api_key_pg}:`).toString('base64')}`
-                },
+            const xendit_payment_method = await this._prismaService
+                .xendit_payment_method
+                .findMany({
+                    where: {
+                        is_active: true
+                    }
+                });
+
+            let newData: any[] = [
+                ...xendit_payment_method.map((item: any) => {
+                    return {
+                        payment_method_type: item.payment_method_type,
+                        payment_method_name: item.payment_method_name,
+                        payment_method_code: item.payment_method_code,
+                        payment_method_instruction: this.getPaymentMethodCaraBayar(item.payment_method_code),
+                        image: this._imageHelperService.getImageUrl(item.payment_method_code),
+                        payment_method_fee: parseFloat(item.payment_method_fee)
+                    }
+                })
+            ];
+
+            return {
+                status: true,
+                data: newData,
+                message: 'OK'
             };
 
-            return await firstValueFrom(
-                this._axiosService
-                    .onAxiosRequest(params)
-                    .pipe(
-                        map((result) => {
-                            result.data = result.data.filter((item: any) => {
-                                if (item.country == 'ID' && item.currency == 'IDR' && item.is_activated && item.code.toLowerCase() != 'sahabat_sampoerna') {
-                                    return item;
-                                }
-                            });
+            // const params = {
+            //     method: 'get',
+            //     url: `${process.env.XENDIT_URL}/available_virtual_account_banks`,
+            //     headers: {
+            //         'Authorization': `Basic ${Buffer.from(`${settingCompany.api_key_pg}:`).toString('base64')}`
+            //     },
+            // };
 
-                            let newData = [
-                                {
-                                    payment_method_type: 'QRIS',
-                                    payment_method_name: 'QRIS',
-                                    payment_method_code: 'QRIS',
-                                    image: this._imageHelperService.getBase64Image('qris.png'),
-                                    payment_method_fee: parseFloat(process.env.XENDIT_QR_FEE)
-                                },
-                                ...result.data.map((item: any) => {
-                                    return {
-                                        payment_method_type: 'Virtual Account',
-                                        payment_method_name: item.name,
-                                        payment_method_code: item.code,
-                                        payment_method_instruction: this.getPaymentMethodCaraBayar(item.code),
-                                        image: this._imageHelperService.getBase64Image(item.code.toLowerCase() + '.png'),
-                                        payment_method_fee: parseFloat(process.env.XENDIT_VA_FEE)
-                                    }
-                                })
-                            ];
+            // return await firstValueFrom(
+            //     this._axiosService
+            //         .onAxiosRequest(params)
+            //         .pipe(
+            //             map((result) => {
+            //                 result.data = result.data.filter((item: any) => {
+            //                     if (item.country == 'ID' && item.currency == 'IDR' && item.is_activated && item.code.toLowerCase() != 'sahabat_sampoerna') {
+            //                         return item;
+            //                     }
+            //                 });
 
-                            return {
-                                ...result,
-                                data: newData
-                            };
-                        })
-                    )
-            );
+            //                 let newData = [
+            //                     {
+            //                         payment_method_type: 'QRIS',
+            //                         payment_method_name: 'QRIS',
+            //                         payment_method_code: 'QRIS',
+            //                         image: this._imageHelperService.getImageUrl('QRIS'),
+            //                         payment_method_fee: parseFloat(process.env.XENDIT_QR_FEE)
+            //                     },
+            //                     ...result.data.map((item: any) => {
+            //                         return {
+            //                             payment_method_type: 'Virtual Account',
+            //                             payment_method_name: item.name,
+            //                             payment_method_code: item.code,
+            //                             payment_method_instruction: this.getPaymentMethodCaraBayar(item.code),
+            //                             image: this._imageHelperService.getImageUrl(item.code),
+            //                             payment_method_fee: parseFloat(process.env.XENDIT_VA_FEE)
+            //                         }
+            //                     })
+            //                 ];
+
+            //                 return {
+            //                     ...result,
+            //                     data: newData
+            //                 };
+            //             })
+            //         )
+            // );
 
         } catch (error) {
             const status = error.message.includes('not found')

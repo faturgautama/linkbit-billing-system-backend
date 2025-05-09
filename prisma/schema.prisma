@@ -332,3 +332,12 @@ model log_activity_user {
     browser              String
     create_at            DateTime @default(now())
 }
+
+model xendit_payment_method {
+    id_xendit_payment_method Int     @id @default(autoincrement())
+    payment_method_type      String
+    payment_method_name      String
+    payment_method_code      String
+    payment_method_fee       Decimal
+    is_active                Boolean @default(false)
+}
