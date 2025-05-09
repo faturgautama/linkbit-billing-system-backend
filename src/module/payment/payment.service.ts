@@ -1937,10 +1937,8 @@ export class PaymentService {
                 invoice_date: this._utilityService.onFormatDate(new Date(invoice.invoice_date), 'MMM yyyy'),
                 invoice_number: invoice.invoice_number,
                 total: this._utilityService.onFormatCurrency(invoice.total),
-                invoice_url: `${process.env.INVOICE_DIGITAL_URL}?token=${token}`,
+                invoice_digital_url: `${process.env.INVOICE_DIGITAL_URL}?token=${token}`,
             };
-
-            console.log("message variable =>", messageVariable);
 
             const template = invoice.pelanggan.setting_company.tagihan_pesan_lunas;
             const newTemplate = template.replace(/\${(.*?)}/g, (_, key) => messageVariable[key.trim()] || "");
@@ -1964,40 +1962,40 @@ export class PaymentService {
                 }
             };
 
-            // const mpwaSendMessageResult = await firstValueFrom(this._axiosService.onAxiosRequest(payloadSendMessageMpwa));
+            const mpwaSendMessageResult = await firstValueFrom(this._axiosService.onAxiosRequest(payloadSendMessageMpwa));
 
-            // if (!mpwaSendMessageResult.status) {
-            //     await this._prismaService
-            //         .log_whatsapp_message
-            //         .create({
-            //             data: {
-            //                 id_invoice: payment.id_invoice,
-            //                 id_setting_company: invoice.pelanggan.id_setting_company,
-            //                 additional_info: payment,
-            //                 sent_at: new Date(),
-            //                 sent_by: payment.create_by,
-            //                 status: 'FAILED'
-            //             }
-            //         })
+            if (!mpwaSendMessageResult.status) {
+                await this._prismaService
+                    .log_whatsapp_message
+                    .create({
+                        data: {
+                            id_invoice: payment.id_invoice,
+                            id_setting_company: invoice.pelanggan.id_setting_company,
+                            additional_info: payment,
+                            sent_at: new Date(),
+                            sent_by: payment.create_by,
+                            status: 'FAILED'
+                        }
+                    })
 
-            //     return {
-            //         status: false,
-            //         message: mpwaSendMessageResult.data.msg,
-            //     }
-            // }
+                return {
+                    status: false,
+                    message: mpwaSendMessageResult.data.msg,
+                }
+            }
 
-            // await this._prismaService
-            //     .log_whatsapp_message
-            //     .create({
-            //         data: {
-            //             id_invoice: payment.id_invoice,
-            //             id_setting_company: invoice.pelanggan.id_setting_company,
-            //             additional_info: payment,
-            //             sent_at: new Date(),
-            //             sent_by: payment.create_by,
-            //             status: 'SUCCESS'
-            //         }
-            //     })
+            await this._prismaService
+                .log_whatsapp_message
+                .create({
+                    data: {
+                        id_invoice: payment.id_invoice,
+                        id_setting_company: invoice.pelanggan.id_setting_company,
+                        additional_info: payment,
+                        sent_at: new Date(),
+                        sent_by: payment.create_by,
+                        status: 'SUCCESS'
+                    }
+                })
 
             return {
                 status: true,
