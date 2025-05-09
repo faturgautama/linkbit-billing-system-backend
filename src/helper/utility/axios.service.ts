@@ -24,6 +24,9 @@ export class AxiosService {
             }
         };
 
+        console.log("==============================================")
+        console.log("request =>", axiosConfig)
+
         return this._httpService.request(axiosConfig).pipe(
             map(result => {
                 return {
