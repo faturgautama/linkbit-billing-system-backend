@@ -326,42 +326,6 @@ export class PaymentService {
                     where: {
                         id_invoice: parseInt(data.id_invoice ? data.id_invoice : data),
                     },
-                    include: {
-                        invoice: {
-                            include: {
-                                pelanggan: {
-                                    select: {
-                                        id_pelanggan: true,
-                                        id_group_pelanggan: true,
-                                        id_setting_company: true,
-                                        full_name: true,
-                                        alamat: true,
-                                        pelanggan_code: true,
-                                        pelanggan_product: {
-                                            select: {
-                                                id_product: true,
-                                                price: true,
-                                                product: {
-                                                    select: {
-                                                        product_name: true
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        setting_company: {
-                                            select: {
-                                                id_setting_company: true,
-                                                company_name: true,
-                                                company_address: true,
-                                                api_key_pg: true,
-                                                is_use_pg_admin_fee: true,
-                                            }
-                                        }
-                                    },
-                                }
-                            }
-                        }
-                    }
                 });
 
             if (!checkIsPaymentExist) {
@@ -384,7 +348,7 @@ export class PaymentService {
                     method: 'get',
                     url: `${process.env.XENDIT_URL}/callback_virtual_accounts/${checkIsPaymentExist.payment_id}`,
                     headers: {
-                        'Authorization': `Basic ${Buffer.from(`${checkIsPaymentExist.invoice.pelanggan.setting_company.api_key_pg}:`).toString('base64')}`
+                        'Authorization': `Basic ${Buffer.from(`${invoice.data.api_key_pg}:`).toString('base64')}`
                     }
                 };
 
@@ -399,7 +363,7 @@ export class PaymentService {
                 }
             };
 
-            delete checkIsPaymentExist.invoice.pelanggan.setting_company.api_key_pg;
+            delete invoice.data.api_key_pg;
 
             return {
                 status: true,
@@ -577,13 +541,15 @@ export class PaymentService {
 
             let newData: any[] = [
                 ...xendit_payment_method.map((item: any) => {
+                    let admin_fee_after_vat = parseFloat(item.payment_method_fee) + (parseFloat(item.payment_method_fee) * parseFloat(process.env.XENDIT_VAT_FEE));
+
                     return {
                         payment_method_type: item.payment_method_type,
                         payment_method_name: item.payment_method_name,
                         payment_method_code: item.payment_method_code,
                         payment_method_instruction: this.getPaymentMethodCaraBayar(item.payment_method_code),
                         image: this._imageHelperService.getImageUrl(item.payment_method_code),
-                        payment_method_fee: parseFloat(item.payment_method_fee)
+                        payment_method_fee: admin_fee_after_vat
                     }
                 })
             ];
@@ -806,11 +772,13 @@ export class PaymentService {
 
                 admin_fee = payload.payment_method_code == 'QRIS'
                     ? (parseFloat(payload.payment_amount as any) * (FEE_AMOUNT.QR / 100))
-                    : parseFloat(payload.payment_amount as any) + FEE_AMOUNT.VA;
+                    : FEE_AMOUNT.VA;
 
                 admin_fee_after_vat = admin_fee + (admin_fee * parseFloat(process.env.XENDIT_VAT_FEE));
 
                 expected_amount = total_invoice + admin_fee_after_vat;
+
+                console.log("expected_amount =>", expected_amount);
             };
 
             const createVirtualAccountParams = {
@@ -916,7 +884,12 @@ export class PaymentService {
                         payment_id: true,
                         payment_amount: true,
                         payment_method: true,
-                    }
+                        invoice: {
+                            select: {
+                                total: true
+                            }
+                        }
+                    },
                 });
 
             const pelanggan = await this._prismaService
@@ -1033,14 +1006,23 @@ export class PaymentService {
                 }
             };
 
-            const FEE_AMOUNT = {
-                VA: process.env.XENDIT_VA_FEE ? parseInt(process.env.XENDIT_VA_FEE) : 0,
-                QR: process.env.XENDIT_QR_FEE ? parseFloat(process.env.XENDIT_QR_FEE) : 0,
-            };
+            let FEE_AMOUNT = { VA: 0, QR: 0 },
+                admin_fee = 0,
+                admin_fee_after_vat = 0,
+                usePgAdminFee = settingCompany.is_use_pg_admin_fee;
 
-            let admin_fee = updatePayment.payment_method == 'QRIS'
-                ? (parseFloat(updatePayment.payment_amount as any) * (FEE_AMOUNT.QR / 100))
-                : parseFloat(updatePayment.payment_amount as any) + FEE_AMOUNT.VA;
+            if (usePgAdminFee) {
+                FEE_AMOUNT = {
+                    VA: process.env.XENDIT_VA_FEE ? parseInt(process.env.XENDIT_VA_FEE) : 0,
+                    QR: process.env.XENDIT_QR_FEE ? parseFloat(process.env.XENDIT_QR_FEE) : 0,
+                };
+
+                admin_fee = updatePayment.payment_method == 'QRIS'
+                    ? (parseFloat(updatePayment.payment_amount as any) * (FEE_AMOUNT.QR / 100))
+                    : FEE_AMOUNT.VA;
+
+                admin_fee_after_vat = admin_fee + (admin_fee * parseFloat(process.env.XENDIT_VAT_FEE));
+            };
 
             const updateInvoice = await this._prismaService
                 .invoice
@@ -1050,7 +1032,8 @@ export class PaymentService {
                     },
                     data: {
                         invoice_status: 'PAID',
-                        admin_fee: parseFloat(admin_fee as any),
+                        admin_fee: parseFloat(admin_fee_after_vat as any),
+                        total: parseInt(payment.invoice.total as any) + parseFloat(admin_fee_after_vat as any)
                     }
                 });
 
@@ -1170,7 +1153,7 @@ export class PaymentService {
 
                 admin_fee = updatePayment.payment_method == 'QRIS'
                     ? (parseFloat(updatePayment.payment_amount as any) * (FEE_AMOUNT.QR / 100))
-                    : parseFloat(updatePayment.payment_amount as any) + FEE_AMOUNT.VA;
+                    : FEE_AMOUNT.VA;
 
                 admin_fee_after_vat = admin_fee + (admin_fee * parseFloat(process.env.XENDIT_VAT_FEE));
             };
@@ -2008,6 +1991,10 @@ export class PaymentService {
             };
 
             const template = invoice.pelanggan.setting_company.tagihan_pesan_lunas;
+
+            console.log("template =>", template);
+            console.log("=============================================================");
+
             const newTemplate = template.replace(/\${(.*?)}/g, (_, key) => messageVariable[key.trim()] || "");
             const messageText = newTemplate
                 .replace(/<\/p>\s*<p>/g, '\n') // Replace consecutive <p> tags with a single line break
@@ -2017,6 +2004,8 @@ export class PaymentService {
                 .replace(/&lt;/g, '<') // Replace `&lt;` with `<`
                 .replace(/&amp;/g, '&') // Replace `&amp;` with `&`
                 .trim(); // Remove any leading or trailing spaces
+
+            console.log("message =>", messageText);
 
             const payloadSendMessageMpwa = {
                 method: 'get',
