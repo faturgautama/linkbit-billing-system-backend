@@ -98,6 +98,7 @@ model setting_company {
     is_mitra                 Boolean                    @default(false)
     is_cabang                Boolean                    @default(false)
     api_key_pg               String?
+    is_use_pg_admin_fee      Boolean?                   @default(false)
     api_key_wa               String?
     pelanggan                pelanggan[]
     user                     user[]

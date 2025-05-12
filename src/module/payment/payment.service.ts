@@ -330,9 +330,34 @@ export class PaymentService {
                         invoice: {
                             include: {
                                 pelanggan: {
-                                    include: {
-                                        setting_company: true,
-                                    }
+                                    select: {
+                                        id_pelanggan: true,
+                                        id_group_pelanggan: true,
+                                        id_setting_company: true,
+                                        full_name: true,
+                                        alamat: true,
+                                        pelanggan_code: true,
+                                        pelanggan_product: {
+                                            select: {
+                                                id_product: true,
+                                                price: true,
+                                                product: {
+                                                    select: {
+                                                        product_name: true
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        setting_company: {
+                                            select: {
+                                                id_setting_company: true,
+                                                company_name: true,
+                                                company_address: true,
+                                                api_key_pg: true,
+                                                is_use_pg_admin_fee: true,
+                                            }
+                                        }
+                                    },
                                 }
                             }
                         }
@@ -373,6 +398,8 @@ export class PaymentService {
                     }
                 }
             };
+
+            delete checkIsPaymentExist.invoice.pelanggan.setting_company.api_key_pg;
 
             return {
                 status: true,
@@ -763,17 +790,28 @@ export class PaymentService {
                 }
             };
 
-            const FEE_AMOUNT = {
-                VA: process.env.XENDIT_VA_FEE ? parseInt(process.env.XENDIT_VA_FEE) : 0,
-                QR: process.env.XENDIT_QR_FEE ? parseFloat(process.env.XENDIT_QR_FEE) : 0,
+            const usePgAdminFee = settingCompany.is_use_pg_admin_fee;
+
+            let FEE_AMOUNT = { VA: 0, QR: 0 },
+                admin_fee = 0,
+                admin_fee_after_vat = 0,
+                total_invoice = payload.payment_amount,
+                expected_amount = payload.payment_amount;
+
+            if (usePgAdminFee) {
+                FEE_AMOUNT = {
+                    VA: process.env.XENDIT_VA_FEE ? parseInt(process.env.XENDIT_VA_FEE) : 0,
+                    QR: process.env.XENDIT_QR_FEE ? parseFloat(process.env.XENDIT_QR_FEE) : 0,
+                };
+
+                admin_fee = payload.payment_method_code == 'QRIS'
+                    ? (parseFloat(payload.payment_amount as any) * (FEE_AMOUNT.QR / 100))
+                    : parseFloat(payload.payment_amount as any) + FEE_AMOUNT.VA;
+
+                admin_fee_after_vat = admin_fee + (admin_fee * parseFloat(process.env.XENDIT_VAT_FEE));
+
+                expected_amount = total_invoice + admin_fee_after_vat;
             };
-
-            let total_invoice = payload.payment_amount,
-                expected_amount = payload.payment_method_type == 'QRIS'
-                    ? total_invoice + (total_invoice * (FEE_AMOUNT.QR / 100))
-                    : total_invoice + FEE_AMOUNT.VA;
-
-
 
             const createVirtualAccountParams = {
                 method: 'post',
@@ -1012,7 +1050,7 @@ export class PaymentService {
                     },
                     data: {
                         invoice_status: 'PAID',
-                        admin_fee: parseFloat(admin_fee as any)
+                        admin_fee: parseFloat(admin_fee as any),
                     }
                 });
 
@@ -1068,6 +1106,24 @@ export class PaymentService {
                 .findFirst({
                     where: {
                         payment_id: id
+                    },
+                    include: {
+                        invoice: {
+                            select: {
+                                id_invoice: true,
+                                total: true,
+                                pelanggan: {
+                                    include: {
+                                        setting_company: {
+                                            select: {
+                                                id_setting_company: true,
+                                                is_use_pg_admin_fee: true,
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 });
 
@@ -1100,14 +1156,24 @@ export class PaymentService {
                 }
             };
 
-            const FEE_AMOUNT = {
-                VA: process.env.XENDIT_VA_FEE ? parseInt(process.env.XENDIT_VA_FEE) : 0,
-                QR: process.env.XENDIT_QR_FEE ? parseFloat(process.env.XENDIT_QR_FEE) : 0,
-            };
+            const usePgAdminFee = payment.invoice.pelanggan.setting_company.is_use_pg_admin_fee;
 
-            let admin_fee = updatePayment.payment_method == 'QRIS'
-                ? (parseFloat(updatePayment.payment_amount as any) * (FEE_AMOUNT.QR / 100))
-                : parseFloat(updatePayment.payment_amount as any) + FEE_AMOUNT.VA;
+            let FEE_AMOUNT = { VA: 0, QR: 0 },
+                admin_fee = 0,
+                admin_fee_after_vat = 0;
+
+            if (usePgAdminFee) {
+                FEE_AMOUNT = {
+                    VA: process.env.XENDIT_VA_FEE ? parseInt(process.env.XENDIT_VA_FEE) : 0,
+                    QR: process.env.XENDIT_QR_FEE ? parseFloat(process.env.XENDIT_QR_FEE) : 0,
+                };
+
+                admin_fee = updatePayment.payment_method == 'QRIS'
+                    ? (parseFloat(updatePayment.payment_amount as any) * (FEE_AMOUNT.QR / 100))
+                    : parseFloat(updatePayment.payment_amount as any) + FEE_AMOUNT.VA;
+
+                admin_fee_after_vat = admin_fee + (admin_fee * parseFloat(process.env.XENDIT_VAT_FEE));
+            };
 
             const updateInvoice = await this._prismaService
                 .invoice
@@ -1117,7 +1183,8 @@ export class PaymentService {
                     },
                     data: {
                         invoice_status: 'PAID',
-                        admin_fee: parseFloat(admin_fee as any)
+                        admin_fee: parseFloat(admin_fee_after_vat as any),
+                        total: parseInt(payment.invoice.total as any) + admin_fee_after_vat
                     }
                 });
 
