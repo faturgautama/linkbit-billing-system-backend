@@ -326,17 +326,6 @@ export class PaymentService {
                     where: {
                         id_invoice: parseInt(data.id_invoice ? data.id_invoice : data),
                     },
-                    include: {
-                        invoice: {
-                            include: {
-                                pelanggan: {
-                                    include: {
-                                        setting_company: true,
-                                    }
-                                }
-                            }
-                        }
-                    }
                 });
 
             if (!checkIsPaymentExist) {
@@ -359,7 +348,7 @@ export class PaymentService {
                     method: 'get',
                     url: `${process.env.XENDIT_URL}/callback_virtual_accounts/${checkIsPaymentExist.payment_id}`,
                     headers: {
-                        'Authorization': `Basic ${Buffer.from(`${checkIsPaymentExist.invoice.pelanggan.setting_company.api_key_pg}:`).toString('base64')}`
+                        'Authorization': `Basic ${Buffer.from(`${invoice.data.api_key_pg}:`).toString('base64')}`
                     }
                 };
 
@@ -373,6 +362,8 @@ export class PaymentService {
                     }
                 }
             };
+
+            delete invoice.data.api_key_pg;
 
             return {
                 status: true,
@@ -550,13 +541,15 @@ export class PaymentService {
 
             let newData: any[] = [
                 ...xendit_payment_method.map((item: any) => {
+                    let admin_fee_after_vat = parseFloat(item.payment_method_fee) + (parseFloat(item.payment_method_fee) * parseFloat(process.env.XENDIT_VAT_FEE));
+
                     return {
                         payment_method_type: item.payment_method_type,
                         payment_method_name: item.payment_method_name,
                         payment_method_code: item.payment_method_code,
                         payment_method_instruction: this.getPaymentMethodCaraBayar(item.payment_method_code),
                         image: this._imageHelperService.getImageUrl(item.payment_method_code),
-                        payment_method_fee: parseFloat(item.payment_method_fee)
+                        payment_method_fee: admin_fee_after_vat
                     }
                 })
             ];
@@ -763,17 +756,30 @@ export class PaymentService {
                 }
             };
 
-            const FEE_AMOUNT = {
-                VA: process.env.XENDIT_VA_FEE ? parseInt(process.env.XENDIT_VA_FEE) : 0,
-                QR: process.env.XENDIT_QR_FEE ? parseFloat(process.env.XENDIT_QR_FEE) : 0,
+            const usePgAdminFee = settingCompany.is_use_pg_admin_fee;
+
+            let FEE_AMOUNT = { VA: 0, QR: 0 },
+                admin_fee = 0,
+                admin_fee_after_vat = 0,
+                total_invoice = payload.payment_amount,
+                expected_amount = payload.payment_amount;
+
+            if (usePgAdminFee) {
+                FEE_AMOUNT = {
+                    VA: process.env.XENDIT_VA_FEE ? parseInt(process.env.XENDIT_VA_FEE) : 0,
+                    QR: process.env.XENDIT_QR_FEE ? parseFloat(process.env.XENDIT_QR_FEE) : 0,
+                };
+
+                admin_fee = payload.payment_method_code == 'QRIS'
+                    ? (parseFloat(payload.payment_amount as any) * (FEE_AMOUNT.QR / 100))
+                    : FEE_AMOUNT.VA;
+
+                admin_fee_after_vat = admin_fee + (admin_fee * parseFloat(process.env.XENDIT_VAT_FEE));
+
+                expected_amount = total_invoice + admin_fee_after_vat;
+
+                console.log("expected_amount =>", expected_amount);
             };
-
-            let total_invoice = payload.payment_amount,
-                expected_amount = payload.payment_method_type == 'QRIS'
-                    ? total_invoice + (total_invoice * (FEE_AMOUNT.QR / 100))
-                    : total_invoice + FEE_AMOUNT.VA;
-
-
 
             const createVirtualAccountParams = {
                 method: 'post',
@@ -878,7 +884,12 @@ export class PaymentService {
                         payment_id: true,
                         payment_amount: true,
                         payment_method: true,
-                    }
+                        invoice: {
+                            select: {
+                                total: true
+                            }
+                        }
+                    },
                 });
 
             const pelanggan = await this._prismaService
@@ -995,14 +1006,23 @@ export class PaymentService {
                 }
             };
 
-            const FEE_AMOUNT = {
-                VA: process.env.XENDIT_VA_FEE ? parseInt(process.env.XENDIT_VA_FEE) : 0,
-                QR: process.env.XENDIT_QR_FEE ? parseFloat(process.env.XENDIT_QR_FEE) : 0,
-            };
+            let FEE_AMOUNT = { VA: 0, QR: 0 },
+                admin_fee = 0,
+                admin_fee_after_vat = 0,
+                usePgAdminFee = settingCompany.is_use_pg_admin_fee;
 
-            let admin_fee = updatePayment.payment_method == 'QRIS'
-                ? (parseFloat(updatePayment.payment_amount as any) * (FEE_AMOUNT.QR / 100))
-                : parseFloat(updatePayment.payment_amount as any) + FEE_AMOUNT.VA;
+            if (usePgAdminFee) {
+                FEE_AMOUNT = {
+                    VA: process.env.XENDIT_VA_FEE ? parseInt(process.env.XENDIT_VA_FEE) : 0,
+                    QR: process.env.XENDIT_QR_FEE ? parseFloat(process.env.XENDIT_QR_FEE) : 0,
+                };
+
+                admin_fee = updatePayment.payment_method == 'QRIS'
+                    ? (parseFloat(updatePayment.payment_amount as any) * (FEE_AMOUNT.QR / 100))
+                    : FEE_AMOUNT.VA;
+
+                admin_fee_after_vat = admin_fee + (admin_fee * parseFloat(process.env.XENDIT_VAT_FEE));
+            };
 
             const updateInvoice = await this._prismaService
                 .invoice
@@ -1012,7 +1032,8 @@ export class PaymentService {
                     },
                     data: {
                         invoice_status: 'PAID',
-                        admin_fee: parseFloat(admin_fee as any)
+                        admin_fee: parseFloat(admin_fee_after_vat as any),
+                        total: parseInt(payment.invoice.total as any) + parseFloat(admin_fee_after_vat as any)
                     }
                 });
 
@@ -1068,6 +1089,24 @@ export class PaymentService {
                 .findFirst({
                     where: {
                         payment_id: id
+                    },
+                    include: {
+                        invoice: {
+                            select: {
+                                id_invoice: true,
+                                total: true,
+                                pelanggan: {
+                                    include: {
+                                        setting_company: {
+                                            select: {
+                                                id_setting_company: true,
+                                                is_use_pg_admin_fee: true,
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 });
 
@@ -1100,14 +1139,24 @@ export class PaymentService {
                 }
             };
 
-            const FEE_AMOUNT = {
-                VA: process.env.XENDIT_VA_FEE ? parseInt(process.env.XENDIT_VA_FEE) : 0,
-                QR: process.env.XENDIT_QR_FEE ? parseFloat(process.env.XENDIT_QR_FEE) : 0,
-            };
+            const usePgAdminFee = payment.invoice.pelanggan.setting_company.is_use_pg_admin_fee;
 
-            let admin_fee = updatePayment.payment_method == 'QRIS'
-                ? (parseFloat(updatePayment.payment_amount as any) * (FEE_AMOUNT.QR / 100))
-                : parseFloat(updatePayment.payment_amount as any) + FEE_AMOUNT.VA;
+            let FEE_AMOUNT = { VA: 0, QR: 0 },
+                admin_fee = 0,
+                admin_fee_after_vat = 0;
+
+            if (usePgAdminFee) {
+                FEE_AMOUNT = {
+                    VA: process.env.XENDIT_VA_FEE ? parseInt(process.env.XENDIT_VA_FEE) : 0,
+                    QR: process.env.XENDIT_QR_FEE ? parseFloat(process.env.XENDIT_QR_FEE) : 0,
+                };
+
+                admin_fee = updatePayment.payment_method == 'QRIS'
+                    ? (parseFloat(updatePayment.payment_amount as any) * (FEE_AMOUNT.QR / 100))
+                    : FEE_AMOUNT.VA;
+
+                admin_fee_after_vat = admin_fee + (admin_fee * parseFloat(process.env.XENDIT_VAT_FEE));
+            };
 
             const updateInvoice = await this._prismaService
                 .invoice
@@ -1117,7 +1166,8 @@ export class PaymentService {
                     },
                     data: {
                         invoice_status: 'PAID',
-                        admin_fee: parseFloat(admin_fee as any)
+                        admin_fee: parseFloat(admin_fee_after_vat as any),
+                        total: parseInt(payment.invoice.total as any) + admin_fee_after_vat
                     }
                 });
 
@@ -1937,12 +1987,14 @@ export class PaymentService {
                 invoice_date: this._utilityService.onFormatDate(new Date(invoice.invoice_date), 'MMM yyyy'),
                 invoice_number: invoice.invoice_number,
                 total: this._utilityService.onFormatCurrency(invoice.total),
-                invoice_url: `${process.env.INVOICE_DIGITAL_URL}?token=${token}`,
+                invoice_digital_url: `${process.env.INVOICE_DIGITAL_URL}?token=${token}`,
             };
 
-            console.log("message variable =>", messageVariable);
-
             const template = invoice.pelanggan.setting_company.tagihan_pesan_lunas;
+
+            console.log("template =>", template);
+            console.log("=============================================================");
+
             const newTemplate = template.replace(/\${(.*?)}/g, (_, key) => messageVariable[key.trim()] || "");
             const messageText = newTemplate
                 .replace(/<\/p>\s*<p>/g, '\n') // Replace consecutive <p> tags with a single line break
@@ -1952,6 +2004,8 @@ export class PaymentService {
                 .replace(/&lt;/g, '<') // Replace `&lt;` with `<`
                 .replace(/&amp;/g, '&') // Replace `&amp;` with `&`
                 .trim(); // Remove any leading or trailing spaces
+
+            console.log("message =>", messageText);
 
             const payloadSendMessageMpwa = {
                 method: 'get',
@@ -1964,40 +2018,40 @@ export class PaymentService {
                 }
             };
 
-            // const mpwaSendMessageResult = await firstValueFrom(this._axiosService.onAxiosRequest(payloadSendMessageMpwa));
+            const mpwaSendMessageResult = await firstValueFrom(this._axiosService.onAxiosRequest(payloadSendMessageMpwa));
 
-            // if (!mpwaSendMessageResult.status) {
-            //     await this._prismaService
-            //         .log_whatsapp_message
-            //         .create({
-            //             data: {
-            //                 id_invoice: payment.id_invoice,
-            //                 id_setting_company: invoice.pelanggan.id_setting_company,
-            //                 additional_info: payment,
-            //                 sent_at: new Date(),
-            //                 sent_by: payment.create_by,
-            //                 status: 'FAILED'
-            //             }
-            //         })
+            if (!mpwaSendMessageResult.status) {
+                await this._prismaService
+                    .log_whatsapp_message
+                    .create({
+                        data: {
+                            id_invoice: payment.id_invoice,
+                            id_setting_company: invoice.pelanggan.id_setting_company,
+                            additional_info: payment,
+                            sent_at: new Date(),
+                            sent_by: payment.create_by,
+                            status: 'FAILED'
+                        }
+                    })
 
-            //     return {
-            //         status: false,
-            //         message: mpwaSendMessageResult.data.msg,
-            //     }
-            // }
+                return {
+                    status: false,
+                    message: mpwaSendMessageResult.data.msg,
+                }
+            }
 
-            // await this._prismaService
-            //     .log_whatsapp_message
-            //     .create({
-            //         data: {
-            //             id_invoice: payment.id_invoice,
-            //             id_setting_company: invoice.pelanggan.id_setting_company,
-            //             additional_info: payment,
-            //             sent_at: new Date(),
-            //             sent_by: payment.create_by,
-            //             status: 'SUCCESS'
-            //         }
-            //     })
+            await this._prismaService
+                .log_whatsapp_message
+                .create({
+                    data: {
+                        id_invoice: payment.id_invoice,
+                        id_setting_company: invoice.pelanggan.id_setting_company,
+                        additional_info: payment,
+                        sent_at: new Date(),
+                        sent_by: payment.create_by,
+                        status: 'SUCCESS'
+                    }
+                })
 
             return {
                 status: true,

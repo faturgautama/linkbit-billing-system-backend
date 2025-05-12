@@ -187,7 +187,9 @@ export class InvoiceService {
                                 setting_company: {
                                     select: {
                                         id_setting_company: true,
-                                        company_name: true
+                                        company_name: true,
+                                        is_use_pg_admin_fee: true,
+                                        api_key_pg: true,
                                     }
                                 }
                             }
@@ -220,6 +222,8 @@ export class InvoiceService {
                     id_pelanggan: res.id_pelanggan,
                     id_setting_company: res.pelanggan.setting_company.id_setting_company,
                     company_name: res.pelanggan.setting_company.company_name,
+                    is_use_pg_admin_fee: res.pelanggan.setting_company.is_use_pg_admin_fee,
+                    api_key_pg: res.pelanggan.setting_company.api_key_pg,
                     full_name: res.pelanggan.full_name,
                     alamat: res.pelanggan.alamat,
                     pelanggan_code: res.pelanggan.pelanggan_code,
