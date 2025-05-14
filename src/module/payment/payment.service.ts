@@ -203,7 +203,28 @@ export class PaymentService {
                     message: 'Payment Not Found',
                     data: null
                 }
-            }
+            };
+
+            let userInput = "SISTEM";
+
+            if (res.payment_provider != 'XENDIT') {
+                let user = await this._prismaService
+                    .user
+                    .findFirst({
+                        where: {
+                            id_user: res.create_by
+                        },
+                        select: {
+                            full_name: true
+                        }
+                    });
+
+                if (user) {
+                    userInput = user.full_name;
+                } else {
+                    userInput = "SISTEM";
+                }
+            };
 
             return {
                 status: true,
@@ -238,6 +259,7 @@ export class PaymentService {
                     payment_provider: res.payment_provider,
                     create_at: res.create_at,
                     create_by: res.create_by,
+                    user_create: userInput,
                     update_at: res.update_at,
                     update_by: res.update_by,
                     token: this._utilityService.onEncrypt(JSON.stringify({ id_invoice: res.id_invoice }))
