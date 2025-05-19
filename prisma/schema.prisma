@@ -247,6 +247,7 @@ model payment {
     payment_status   String
     payment_amount   Float
     payment_provider String
+    expired_at       DateTime?
     create_at        DateTime  @default(now())
     create_by        Int
     update_at        DateTime?

@@ -670,6 +670,29 @@ export class PaymentService {
                 });
 
             if (checkIsPaymentExist) {
+                if (checkIsPaymentExist.payment_method != 'QRIS' && checkIsPaymentExist.payment_provider == 'XENDIT') {
+                    const updateVirtualAccountParams = {
+                        method: 'patch',
+                        url: `${process.env.XENDIT_URL}/callback_virtual_accounts/${checkIsPaymentExist.payment_id}`,
+                        headers: {
+                            'Authorization': `Basic ${Buffer.from(`${invoice.data.api_key_pg}:`).toString('base64')}`
+                        },
+                        data: {
+                            expiration_date: new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toISOString(),
+                        }
+                    };
+
+                    const updateExpiredDateVaXendit = await firstValueFrom(this._axiosService.onAxiosRequest(updateVirtualAccountParams));
+
+                    if (!updateExpiredDateVaXendit.status) {
+                        return {
+                            status: false,
+                            message: 'Failed To Update VA Expiration Date',
+                            data: null
+                        }
+                    };
+                }
+
                 const updateStatusPayment = await this._prismaService
                     .payment
                     .delete({
@@ -803,6 +826,8 @@ export class PaymentService {
                 console.log("expected_amount =>", expected_amount);
             };
 
+            const expired_date = new Date(new Date().getTime() + 1 * 60 * 60 * 1000);
+
             const createVirtualAccountParams = {
                 method: 'post',
                 url: `${process.env.XENDIT_URL}/callback_virtual_accounts`,
@@ -818,7 +843,8 @@ export class PaymentService {
                     is_single_use: true,
                     is_closed: true,
                     expected_amount: expected_amount,
-                    callback_url: process.env.XENDIT_CALLBACK_URL
+                    callback_url: process.env.XENDIT_CALLBACK_URL,
+                    expiration_date: expired_date.toISOString(),
                 }
             };
 
@@ -835,7 +861,8 @@ export class PaymentService {
                     type: 'DYNAMIC',
                     currency: 'IDR',
                     amount: Math.ceil(expected_amount),
-                    callback_url: process.env.XENDIT_CALLBACK_URL
+                    callback_url: process.env.XENDIT_CALLBACK_URL,
+                    expires_at: expired_date.toISOString(),
                 }
             };
 
@@ -865,6 +892,7 @@ export class PaymentService {
                         payment_method: payload.payment_method_code,
                         payment_amount: expected_amount,
                         payment_provider: 'XENDIT',
+                        expired_at: expired_date.toISOString(),
                         create_at: new Date(),
                         create_by: dataFromToken.id_pelanggan
                     }
