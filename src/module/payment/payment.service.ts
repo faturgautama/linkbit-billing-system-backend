@@ -773,7 +773,8 @@ export class PaymentService {
                         id_pelanggan: invoice.data.id_pelanggan
                     },
                     select: {
-                        id_setting_company: true
+                        id_setting_company: true,
+                        pelanggan_code: true,
                     }
                 });
 
@@ -822,8 +823,6 @@ export class PaymentService {
                 admin_fee_after_vat = admin_fee + (admin_fee * parseFloat(process.env.XENDIT_VAT_FEE));
 
                 expected_amount = total_invoice + admin_fee_after_vat;
-
-                console.log("expected_amount =>", expected_amount);
             };
 
             const expired_date = new Date(new Date().getTime() + 1 * 60 * 60 * 1000);
@@ -837,7 +836,7 @@ export class PaymentService {
                 data: {
                     external_id: `va_${dataFromToken.invoice_number}`,
                     bank_code: payload.payment_method_code,
-                    name: dataFromToken.full_name,
+                    name: `${dataFromToken.full_name} - ${pelanggan.pelanggan_code}`,
                     country: 'ID',
                     currency: 'IDR',
                     is_single_use: true,
