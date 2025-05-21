@@ -1130,7 +1130,7 @@ export class PaymentService {
             };
 
             if (paymentMethod == 'VA') {
-                id = payload.payment_id;
+                id = payload.callback_virtual_account_id;
             };
 
             const payment = await this._prismaService
