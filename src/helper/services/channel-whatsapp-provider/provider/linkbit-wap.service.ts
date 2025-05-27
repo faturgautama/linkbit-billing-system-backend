@@ -12,13 +12,13 @@ export class LinkbitWapService {
         private _utilityService: UtilityService,
     ) { }
 
-    async handleSendMessage(type: WhatsappChannelProviderModel.MESSAGE_TYPE, invoice: any) {
+    async handleSendMessage(type: WhatsappChannelProviderModel.MESSAGE_TYPE, invoice: any, channel_whatsapp: any) {
         return type == 'INVOICE'
-            ? await this.sendInvoiceMessage(invoice)
-            : await this.sendPaymentMessage(invoice);
+            ? await this.sendInvoiceMessage(invoice, channel_whatsapp)
+            : await this.sendPaymentMessage(invoice, channel_whatsapp);
     }
 
-    private async sendInvoiceMessage(invoice: any): Promise<any> {
+    private async sendInvoiceMessage(invoice: any, channel_whatsapp: any): Promise<any> {
         try {
             const token = this._utilityService.onEncrypt(JSON.stringify(invoice.id_invoice));
 
@@ -46,7 +46,7 @@ export class LinkbitWapService {
 
             const payloadSendMessageMpwa = {
                 method: 'get',
-                url: `${process.env.MPWA_URL}/send-message`,
+                url: `${channel_whatsapp.base_url}/send-message`,
                 params: {
                     api_key: invoice.pelanggan.setting_company.api_key_wa,
                     sender: invoice.pelanggan.setting_company.company_whatsapp,
@@ -61,7 +61,7 @@ export class LinkbitWapService {
         }
     }
 
-    private async sendPaymentMessage(invoice: any): Promise<any> {
+    private async sendPaymentMessage(invoice: any, channel_whatsapp: any): Promise<any> {
         try {
             const token = this._utilityService.onEncrypt(JSON.stringify(invoice.id_invoice));
 
@@ -86,11 +86,9 @@ export class LinkbitWapService {
                 .replace(/&amp;/g, '&') // Replace `&amp;` with `&`
                 .trim(); // Remove any leading or trailing spaces
 
-            console.log("message =>", messageText);
-
             const payloadSendMessageMpwa = {
                 method: 'get',
-                url: `${process.env.MPWA_URL}/send-message`,
+                url: `${channel_whatsapp.base_url}/send-message`,
                 params: {
                     api_key: invoice.pelanggan.setting_company.api_key_wa,
                     sender: invoice.pelanggan.setting_company.company_whatsapp,

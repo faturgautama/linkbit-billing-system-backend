@@ -3,12 +3,14 @@ import { PrismaService } from "src/prisma.service";
 import { WhatsappChannelProviderModel } from './channel-provider.model';
 import { LinkbitWapService } from "./provider/linkbit-wap.service";
 import { Request } from "express";
+import { QontakWapService } from "./provider/qontak-wap.service";
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class ChannelProviderRouterService {
 
     constructor(
         private _prismaService: PrismaService,
+        private _qontakWapService: QontakWapService,
         private _linkbitWapService: LinkbitWapService,
     ) { }
 
@@ -24,17 +26,20 @@ export class ChannelProviderRouterService {
                         is_default: true
                     },
                     include: {
-                        channel_whatsapp: {
-                            select: {
-                                channel_whatsapp: true
-                            }
-                        }
+                        channel_whatsapp: true
                     }
                 });
 
+            if (!channel_whatsapp_default) {
+                return {
+                    status: false,
+                    message: 'Channel Broadcast Whatsapp Belum Diatur'
+                }
+            };
+
             const send_result = channel_whatsapp_default.channel_whatsapp.channel_whatsapp.includes('QONTAK')
-                ? await this._linkbitWapService.handleSendMessage(type, data)
-                : {};
+                ? await this._qontakWapService.handleSendMessage(type, data, channel_whatsapp_default)
+                : await this._linkbitWapService.handleSendMessage(type, data, channel_whatsapp_default);
 
             await this._prismaService
                 .log_whatsapp_message
