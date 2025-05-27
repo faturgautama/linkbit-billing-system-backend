@@ -209,7 +209,7 @@ export class LogActivityService {
 
     async resentLogSendMessage(id_invoice: number, req: Request): Promise<LogActivityModel.GetAllLogSendMessage> {
         try {
-            const resultSend = await this._invoiceService.sendMessage(parseInt(id_invoice as any));
+            const resultSend = await this._invoiceService.sendMessage(req, parseInt(id_invoice as any));
 
             if (!resultSend) {
                 return {

@@ -126,4 +126,36 @@ export namespace SettingCompanyModel {
         no_rekening: string;
         is_active: boolean;
     }
+
+    export class ISettingChannelWhatsapp {
+        id_setting_channel_whatsapp: number;
+        id_channel_whatsapp: number;
+        channel_whatsapp: string;
+        is_default: boolean;
+        is_active: boolean;
+        create_at: Date;
+        create_by: number;
+        update_at: Date;
+        update_by: number;
+    }
+
+    export class GetAllSettingChannelWhatsapp {
+        status: boolean;
+        message: string;
+        data: ISettingChannelWhatsapp[]
+    }
+
+    export class CreateSettingChannelWhatsapp {
+        id_channel_whatsapp: number;
+        credential: any;
+    }
+
+    export class UpdateSettingChannelWhatsapp {
+        id_setting_channel_whatsapp: number;
+        id_payment_method_manual: number;
+        id_channel_whatsapp: number;
+        credential: any;
+        is_default: boolean;
+        is_active: boolean;
+    }
 }

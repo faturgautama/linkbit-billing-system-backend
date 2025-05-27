@@ -107,6 +107,7 @@ model setting_company {
     history_import_pelanggan history_import_pelanggan[]
     product                  product[]
     payment_method_manual    payment_method_manual[]
+    setting_channel_whatsapp setting_channel_whatsapp[]
 }
 
 model payment_method_manual {
@@ -120,6 +121,34 @@ model payment_method_manual {
     update_at                DateTime?
     update_by                Int?
     is_active                Boolean         @default(true)
+}
+
+model channel_whatsapp {
+    id_channel_whatsapp      Int                        @id @default(autoincrement())
+    channel_whatsapp         String
+    api_url                  String
+    required_credential      Json?
+    create_at                DateTime
+    create_by                Int
+    update_at                DateTime?
+    update_by                Int?
+    is_active                Boolean                    @default(true)
+    setting_channel_whatsapp setting_channel_whatsapp[]
+}
+
+model setting_channel_whatsapp {
+    id_setting_channel_whatsapp Int              @id @default(autoincrement())
+    channel_whatsapp            channel_whatsapp @relation(fields: [id_channel_whatsapp], references: [id_channel_whatsapp])
+    id_channel_whatsapp         Int
+    setting_company             setting_company  @relation(fields: [id_setting_company], references: [id_setting_company])
+    id_setting_company          Int
+    credential                  Json?
+    create_at                   DateTime
+    create_by                   Int
+    update_at                   DateTime?
+    update_by                   Int?
+    is_default                  Boolean          @default(false)
+    is_active                   Boolean          @default(true)
 }
 
 model product {

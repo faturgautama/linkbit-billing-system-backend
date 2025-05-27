@@ -192,9 +192,9 @@ export class PaymentController {
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetByIdPayment })
-    async callback(@Param('id_payment') id_payment: number, @Res() res: Response): Promise<any> {
+    async callback(@Param('id_payment') id_payment: number, @Req() req: Request, @Res() res: Response): Promise<any> {
         try {
-            const data = await this._paymentService.sendMessage(id_payment);
+            const data = await this._paymentService.sendMessage(req, id_payment);
             return res.status(HttpStatus.OK).json(data);
 
         } catch (error) {
