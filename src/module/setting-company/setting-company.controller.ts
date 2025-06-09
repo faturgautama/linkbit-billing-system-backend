@@ -189,4 +189,60 @@ export class SettingCompanyController {
             });
         }
     }
+
+    @Get('channel-whatsapp/:id_setting_company')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    @ApiResponse({ status: 200, description: 'Success', type: SettingCompanyModel.GetAllSettingChannelWhatsapp })
+    async getAllChannelWhatsapp(@Param('id_setting_company') id_setting_company: number, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._settingCompanyService.getAllChannelWhatsapp(id_setting_company);
+            return res.status(HttpStatus.OK).json(data);
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
+
+    @Post('channel-whatsapp')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    @ApiResponse({ status: 200, description: 'Success', type: SettingCompanyModel.GetAllSettingChannelWhatsapp })
+    async insertChannelWhatsapp(@Body() body: SettingCompanyModel.CreateSettingChannelWhatsapp, @Req() req: Request, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._settingCompanyService.createChannelWhatsapp(req, body);
+            return res.status(HttpStatus.OK).json(data);
+
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
+
+    @Put('channel-whatsapp')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    @ApiResponse({ status: 200, description: 'Success', type: SettingCompanyModel.GetAllSettingChannelWhatsapp })
+    async updateChannelWhatsapp(@Body() body: SettingCompanyModel.UpdateSettingChannelWhatsapp, @Req() req: Request, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._settingCompanyService.updateChannelWhatsapp(req, body);
+            return res.status(HttpStatus.OK).json(data);
+
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
 }

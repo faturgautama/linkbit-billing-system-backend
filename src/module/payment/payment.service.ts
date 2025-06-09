@@ -9,6 +9,8 @@ import { AxiosService } from 'src/helper/utility/axios.service';
 import { ImageHelperService } from 'src/helper/utility/image-helper.service';
 import { UtilityService } from 'src/helper/utility/utility.service';
 import { SettingCompanyService } from '../setting-company/setting-company.service';
+import { ChannelProviderRouterService } from 'src/helper/services/channel-whatsapp-provider/channel-provider-router.service';
+import { WhatsappChannelProviderModel } from 'src/helper/services/channel-whatsapp-provider/channel-provider.model';
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class PaymentService {
@@ -21,6 +23,7 @@ export class PaymentService {
         private _invoiceService: InvoiceService,
         private _imageHelperService: ImageHelperService,
         private _settingCompanyService: SettingCompanyService,
+        private _channelProviderRouterService: ChannelProviderRouterService
     ) { }
 
     async getAll(req: Request, query: PaymentModel.IPaymentQueryParams): Promise<PaymentModel.GetAllPayment> {
@@ -1228,7 +1231,7 @@ export class PaymentService {
                 }
             };
 
-            const sendMessage = await this.sendMessage(payment.id_payment);
+            const sendMessage = await this.sendMessage({ user: { id_setting_company: payment.invoice.pelanggan.id_setting_company } } as any, payment.id_payment);
 
             if (!sendMessage.status) {
                 return {
@@ -1994,7 +1997,7 @@ export class PaymentService {
         return payment_method_instructions;
     }
 
-    async sendMessage(id_payment: any): Promise<any> {
+    async sendMessage(req: Request, id_payment: any): Promise<any> {
         try {
             const payment = await this._prismaService
                 .payment
@@ -2020,93 +2023,7 @@ export class PaymentService {
                     }
                 });
 
-            if (!invoice.pelanggan.setting_company.api_key_wa) {
-                return {
-                    status: false,
-                    message: "API Key WA belum diatur"
-                }
-            };
-
-            const token = this._utilityService.onEncrypt(JSON.stringify(payment.id_invoice));
-
-            const messageVariable = {
-                full_name: invoice.pelanggan.full_name,
-                pelanggan_code: invoice.pelanggan.pelanggan_code,
-                product_name: invoice.product.product_name,
-                invoice_date: this._utilityService.onFormatDate(new Date(invoice.invoice_date), 'MMM yyyy'),
-                invoice_number: invoice.invoice_number,
-                total: this._utilityService.onFormatCurrency(invoice.total),
-                invoice_digital_url: `${process.env.INVOICE_DIGITAL_URL}?token=${token}`,
-            };
-
-            const template = invoice.pelanggan.setting_company.tagihan_pesan_lunas;
-
-            console.log("template =>", template);
-            console.log("=============================================================");
-
-            const newTemplate = template.replace(/\${(.*?)}/g, (_, key) => messageVariable[key.trim()] || "");
-            const messageText = newTemplate
-                .replace(/<\/p>\s*<p>/g, '\n') // Replace consecutive <p> tags with a single line break
-                .replace(/<\/?[^>]+(>|$)/g, "") // Remove any remaining HTML tags
-                .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces with normal spaces
-                .replace(/&gt;/g, '>') // Replace `&gt;` with `>`
-                .replace(/&lt;/g, '<') // Replace `&lt;` with `<`
-                .replace(/&amp;/g, '&') // Replace `&amp;` with `&`
-                .trim(); // Remove any leading or trailing spaces
-
-            console.log("message =>", messageText);
-
-            const payloadSendMessageMpwa = {
-                method: 'get',
-                url: `${process.env.MPWA_URL}/send-message`,
-                params: {
-                    api_key: invoice.pelanggan.setting_company.api_key_wa,
-                    sender: invoice.pelanggan.setting_company.company_whatsapp,
-                    number: invoice.pelanggan.whatsapp,
-                    message: messageText,
-                }
-            };
-
-            const mpwaSendMessageResult = await firstValueFrom(this._axiosService.onAxiosRequest(payloadSendMessageMpwa));
-
-            if (!mpwaSendMessageResult.status) {
-                await this._prismaService
-                    .log_whatsapp_message
-                    .create({
-                        data: {
-                            id_invoice: payment.id_invoice,
-                            id_setting_company: invoice.pelanggan.id_setting_company,
-                            additional_info: payment,
-                            sent_at: new Date(),
-                            sent_by: payment.create_by,
-                            status: 'FAILED'
-                        }
-                    })
-
-                return {
-                    status: false,
-                    message: mpwaSendMessageResult.data.msg,
-                }
-            }
-
-            await this._prismaService
-                .log_whatsapp_message
-                .create({
-                    data: {
-                        id_invoice: payment.id_invoice,
-                        id_setting_company: invoice.pelanggan.id_setting_company,
-                        additional_info: payment,
-                        sent_at: new Date(),
-                        sent_by: payment.create_by,
-                        status: 'SUCCESS'
-                    }
-                })
-
-            return {
-                status: true,
-                message: 'Pesan lunas berhasil dikirimkan',
-                data: id_payment,
-            };
+            return await this._channelProviderRouterService.handleSendMessage(req, 'PAYMENT', invoice);
 
         } catch (error) {
             throw new HttpException(

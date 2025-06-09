@@ -128,12 +128,13 @@ export class InvoiceController {
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Success', type: InvoiceModel.GetByIdInvoice })
-    async callback(@Param('id_invoice') id_invoice: number, @Res() res: Response): Promise<any> {
+    async callback(@Param('id_invoice') id_invoice: number, @Req() req: Request, @Res() res: Response): Promise<any> {
         try {
-            const data = await this._invoiceService.sendMessage(id_invoice);
+            const data = await this._invoiceService.sendMessage(req, id_invoice);
             return res.status(HttpStatus.OK).json(data);
 
         } catch (error) {
+            console.log("error =>", error);
             const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
             return res.status(status).json({
                 status: false,

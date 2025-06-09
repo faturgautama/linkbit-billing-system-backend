@@ -41,13 +41,17 @@ import { TemplateEditorController } from './module/template-editor/template-edit
 import { TemplateEditorService } from './module/template-editor/template-editor.service';
 import { LogActivityService } from './module/log-activity/log-activity.service';
 import { LogActivityController } from './module/log-activity/log-activity.controller';
+import { ChannelWhatsappController } from './module/channel-whatsapp/channel-whatsapp.controller';
+import { ChannelWhatsappService } from './module/channel-whatsapp/channel-whatsapp.service';
 
 import { AxiosService } from './helper/utility/axios.service';
 import { ImageHelperService } from './helper/utility/image-helper.service';
 import { UtilityService } from './helper/utility/utility.service';
-
 import { InvoiceCronService } from './scheduler/invoice-cron.service';
 import { SendMessageCronService } from './scheduler/send-message-cron.service';
+import { ChannelProviderRouterService } from './helper/services/channel-whatsapp-provider/channel-provider-router.service';
+import { LinkbitWapService } from './helper/services/channel-whatsapp-provider/provider/linkbit-wap.service';
+import { QontakWapService } from './helper/services/channel-whatsapp-provider/provider/qontak-wap.service';
 
 @Module({
     imports: [
@@ -74,6 +78,7 @@ import { SendMessageCronService } from './scheduler/send-message-cron.service';
         LaporanController,
         TemplateEditorController,
         LogActivityController,
+        ChannelWhatsappController
     ],
     providers: [
         JwtStrategy,
@@ -99,6 +104,10 @@ import { SendMessageCronService } from './scheduler/send-message-cron.service';
         SendMessageCronService,
         TemplateEditorService,
         LogActivityService,
+        ChannelWhatsappService,
+        LinkbitWapService,
+        ChannelProviderRouterService,
+        QontakWapService,
     ],
 })
 export class AppModule {

@@ -82,7 +82,6 @@ export class PelangganService {
             }
 
         } catch (error) {
-            console.log("error =>", error);
             const status = error.message.includes('not found')
                 ? HttpStatus.NOT_FOUND
                 : error.message.includes('bad request')
@@ -253,8 +252,6 @@ export class PelangganService {
             }
 
         } catch (error) {
-            console.log("error =>", error);
-
             const status = error.message.includes('not found')
                 ? HttpStatus.NOT_FOUND
                 : error.message.includes('bad request')
@@ -306,8 +303,6 @@ export class PelangganService {
             }
 
         } catch (error) {
-            console.log(error);
-
             const status = error.message.includes('not found')
                 ? HttpStatus.NOT_FOUND
                 : error.message.includes('bad request')
@@ -377,7 +372,6 @@ export class PelangganService {
             }
 
         } catch (error) {
-            console.log("error create / update pelanggan product =>", error);
             const status = error.message.includes('not found')
                 ? HttpStatus.NOT_FOUND
                 : error.message.includes('bad request')
@@ -479,83 +473,104 @@ export class PelangganService {
     }
 
     async importFromExcel(data: any[], meta: { id_setting_company: number; create_by: number }) {
+        const pelangganCodes = data.map(row => row.pelanggan_code);
+
+        // Step 1: Check for existing pelanggan_code
+        const existing = await this._prismaService.pelanggan.findMany({
+            where: {
+                pelanggan_code: { in: pelangganCodes },
+                id_setting_company: meta.id_setting_company,
+                is_active: true
+            },
+            select: { pelanggan_code: true },
+        });
+
+        if (existing.length > 0) {
+            const duplicatedCodes = [...new Set(existing.map(e => e.pelanggan_code))]; // Remove duplicates
+            const formattedCodes = duplicatedCodes.map(code => `"${code}"`).join(', ');
+            return {
+                status: false,
+                message: `Terdapat Kode Pelanggan Yang Sama di Database: ${formattedCodes}`,
+                data: duplicatedCodes,
+            };
+        }
+
+        // Step 2: Use Prisma transaction to ensure all-or-nothing
         try {
-            const results = [];
+            const results = await this._prismaService.$transaction(async (tx) => {
+                const inserted = [];
 
-            for (const row of data) {
-                const phone = row.phone ? row.phone.replace(/^(\+62|0)/, '62') : "";
-                const whatsapp = row.whatsapp ? row.whatsapp.replace(/^(\+62|0)/, '62') : "";
+                for (const row of data) {
+                    const phone = row.phone ? row.phone.replace(/^(\+62|0)/, '62') : "";
+                    const whatsapp = row.whatsapp ? row.whatsapp.replace(/^(\+62|0)/, '62') : "";
 
-                const pelanggan = await this._prismaService.pelanggan.create({
-                    data: {
-                        id_setting_company: meta.id_setting_company,
-                        id_group_pelanggan: row.id_group_pelanggan
-                            ? Number(row.id_group_pelanggan)
-                            : 1, // default to 1
-                        full_name: row.full_name,
-                        pelanggan_code: row.pelanggan_code,
-                        identity_number: row.identity_number || null,
-                        email: row.email || null,
-                        password: row.password || null,
-                        alamat: row.alamat || null,
-                        phone: phone,
-                        whatsapp: whatsapp || null,
-                        subscribe_start_date: row.subscribe_start_date
-                            ? new Date(row.subscribe_start_date)
-                            : null,
-                        pic_name: row.pic_name || null,
-                        notes: row.notes || null,
-                        is_active: row.is_active !== undefined ? Boolean(row.is_active) : true,
-                        create_by: meta.create_by,
-                        create_at: new Date(),
-                    },
-                });
+                    const pelanggan = await tx.pelanggan.create({
+                        data: {
+                            id_setting_company: meta.id_setting_company,
+                            id_group_pelanggan: row.id_group_pelanggan
+                                ? Number(row.id_group_pelanggan)
+                                : 1,
+                            full_name: row.full_name,
+                            pelanggan_code: row.pelanggan_code,
+                            identity_number: row.identity_number || null,
+                            email: row.email || null,
+                            password: row.password || null,
+                            alamat: row.alamat || null,
+                            phone: phone,
+                            whatsapp: whatsapp || null,
+                            subscribe_start_date: row.subscribe_start_date
+                                ? new Date(row.subscribe_start_date)
+                                : null,
+                            pic_name: row.pic_name || null,
+                            notes: row.notes || null,
+                            is_active: row.is_active !== undefined ? Boolean(row.is_active) : true,
+                            create_by: meta.create_by,
+                            create_at: new Date(),
+                        },
+                    });
 
-                await this._prismaService.history_import_pelanggan.create({
-                    data: {
-                        id_pelanggan: pelanggan.id_pelanggan,
-                        id_setting_company: pelanggan.id_setting_company,
-                        id_group_pelanggan: pelanggan.id_group_pelanggan,
-                        full_name: pelanggan.full_name,
-                        pelanggan_code: pelanggan.pelanggan_code,
-                        identity_number: pelanggan.identity_number,
-                        email: pelanggan.email,
-                        password: pelanggan.password,
-                        alamat: pelanggan.alamat,
-                        phone: pelanggan.phone,
-                        whatsapp: pelanggan.whatsapp,
-                        subscribe_start_date: pelanggan.subscribe_start_date,
-                        pic_name: pelanggan.pic_name,
-                        notes: pelanggan.notes,
-                        is_active: pelanggan.is_active,
-                        create_by: pelanggan.create_by,
-                        create_at: new Date(),
-                    },
-                });
+                    await tx.history_import_pelanggan.create({
+                        data: {
+                            id_pelanggan: pelanggan.id_pelanggan,
+                            id_setting_company: pelanggan.id_setting_company,
+                            id_group_pelanggan: pelanggan.id_group_pelanggan,
+                            full_name: pelanggan.full_name,
+                            pelanggan_code: pelanggan.pelanggan_code,
+                            identity_number: pelanggan.identity_number,
+                            email: pelanggan.email,
+                            password: pelanggan.password,
+                            alamat: pelanggan.alamat,
+                            phone: pelanggan.phone,
+                            whatsapp: pelanggan.whatsapp,
+                            subscribe_start_date: pelanggan.subscribe_start_date,
+                            pic_name: pelanggan.pic_name,
+                            notes: pelanggan.notes,
+                            is_active: pelanggan.is_active,
+                            create_by: pelanggan.create_by,
+                            create_at: new Date(),
+                        },
+                    });
 
-                results.push(pelanggan);
-            }
+                    inserted.push(pelanggan);
+                }
+
+                return inserted;
+            });
 
             return {
                 status: true,
                 message: `Berhasil Import ${results.length} data dari ${data.length} total data`,
-                data: results
+                data: results,
             };
-
         } catch (error) {
-            const status = error.message.includes('not found')
-                ? HttpStatus.NOT_FOUND
-                : error.message.includes('bad request')
-                    ? HttpStatus.BAD_REQUEST
-                    : HttpStatus.INTERNAL_SERVER_ERROR;
-
             throw new HttpException(
                 {
                     status: false,
-                    message: error.message
+                    message: error.message,
                 },
-                status
+                HttpStatus.INTERNAL_SERVER_ERROR,
             );
         }
     }
+
 }

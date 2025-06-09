@@ -280,5 +280,148 @@ export class SettingCompanyService {
         }
     }
 
+    async getAllChannelWhatsapp(id_setting_company: number): Promise<SettingCompanyModel.GetAllSettingChannelWhatsapp> {
+        try {
+            let res: any[] = await this._prismaService
+                .setting_channel_whatsapp
+                .findMany({
+                    where: {
+                        id_setting_company: parseInt(id_setting_company as any),
+                        is_active: true,
+                    },
+                    include: {
+                        channel_whatsapp: {
+                            select: {
+                                channel_whatsapp: true
+                            }
+                        }
+                    }
+                });
+
+            return {
+                status: true,
+                message: '',
+                data: res.map((item: any) => {
+                    const { channel_whatsapp, ...data } = item;
+                    return {
+                        ...data,
+                        channel_whatsapp: channel_whatsapp.channel_whatsapp
+                    }
+                })
+            }
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
+    async createChannelWhatsapp(req: Request, payload: SettingCompanyModel.CreateSettingChannelWhatsapp): Promise<any> {
+        try {
+            let res = await this._prismaService
+                .setting_channel_whatsapp
+                .create({
+                    data: {
+                        id_setting_company: parseInt(req['user']['id_setting_company'] as any),
+                        id_channel_whatsapp: parseInt(payload.id_channel_whatsapp as any),
+                        credential: payload.credential,
+                        create_at: new Date(),
+                        create_by: parseInt(req['user']['id_user'] as any)
+                    }
+                })
+
+            return {
+                status: true,
+                message: '',
+                data: res
+            }
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
+    async updateChannelWhatsapp(req: Request, payload: SettingCompanyModel.UpdateSettingChannelWhatsapp): Promise<any> {
+        try {
+            let res = await this._prismaService
+                .setting_channel_whatsapp
+                .update({
+                    where: {
+                        id_setting_channel_whatsapp: parseInt(payload.id_setting_channel_whatsapp as any)
+                    },
+                    data: {
+                        id_channel_whatsapp: parseInt(payload.id_channel_whatsapp as any),
+                        credential: payload.credential,
+                        is_default: payload.is_default,
+                        is_active: payload.is_active,
+                        update_at: new Date(),
+                        update_by: parseInt(req['user']['id_user'] as any)
+                    }
+                });
+
+            if (res.is_default) {
+                const othersChannelWhatsapp = await this._prismaService
+                    .setting_channel_whatsapp
+                    .updateMany({
+                        where: {
+                            is_default: true,
+                            id_setting_channel_whatsapp: {
+                                not: parseInt(res.id_setting_channel_whatsapp as any)
+                            }
+                        },
+                        data: {
+                            is_default: false,
+                            update_at: new Date(),
+                            update_by: parseInt(req['user']['id_user'] as any)
+                        }
+                    });
+            }
+
+            return {
+                status: true,
+                message: '',
+                data: res
+            }
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
 
 }
