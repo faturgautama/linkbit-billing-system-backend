@@ -75,7 +75,6 @@ export class QontakWapService {
             const payload_info = {
                 method: 'post',
                 url: `${channel_whatsapp.channel_whatsapp.api_url}/broadcasts/whatsapp/direct`,
-                headers: this.generateHeader(method, url, channel_whatsapp),
                 message_template_id: templates.data.data.find(item => item.name == template_name).id,
                 message_variable: {
                     full_name: invoice.pelanggan.full_name,
@@ -91,10 +90,10 @@ export class QontakWapService {
             }
 
             return template_name == process.env.QONTAK_TEMPLATE_INVOICE_XENDIT
-                ? await this.sendMessageInvoiceXendit(invoice, payload_info)
+                ? await this.sendMessageInvoiceXendit(invoice, payload_info, channel_whatsapp)
                 : (template_name == process.env.QONTAK_TEMPLATE_PEMBAYARAN
-                    ? await this.sendMessagePembayaran(invoice, payload_info)
-                    : await this.sendMessageInvoiceManual(invoice, payload_info)
+                    ? await this.sendMessagePembayaran(invoice, payload_info, channel_whatsapp)
+                    : await this.sendMessageInvoiceManual(invoice, payload_info, channel_whatsapp)
                 );
 
         } catch (error) {
@@ -102,12 +101,12 @@ export class QontakWapService {
         }
     }
 
-    private async sendMessageInvoiceXendit(invoice: any, payload_info: any) {
+    private async sendMessageInvoiceXendit(invoice: any, payload_info: any, channel_whatsapp: any) {
         try {
             const send_message_payload = {
                 method: payload_info.method,
                 url: payload_info.url,
-                headers: payload_info.headers,
+                headers: this.generateHeader(payload_info.method, payload_info.url, channel_whatsapp),
                 data: {
                     to_name: invoice.pelanggan.full_name,
                     to_number: invoice.pelanggan.whatsapp,
@@ -121,66 +120,63 @@ export class QontakWapService {
                             {
                                 index: "0",
                                 type: "URL",
-                                value: payload_info.message_variable.checkout_url
+                                value: payload_info.message_variable.checkout_url.replace("https://checkout.linkbit.net.id", "")
                             },
                         ],
                         body: [
                             {
                                 key: "1",
-                                value_text: "customer_name",
-                                value: payload_info.message_variable.full_name,
+                                value: "customer_name",
+                                value_text: payload_info.message_variable.full_name,
                             },
                             {
                                 key: "2",
-                                value_text: "pelanggan_code",
-                                value: payload_info.message_variable.pelanggan_code,
+                                value: "pelanggan_code",
+                                value_text: payload_info.message_variable.pelanggan_code,
                             },
                             {
                                 key: "3",
-                                value_text: "product_name",
-                                value: payload_info.message_variable.product_name,
+                                value: "product_name",
+                                value_text: payload_info.message_variable.product_name,
                             },
                             {
                                 key: "4",
-                                value_text: "periode",
-                                value: payload_info.message_variable.invoice_date,
+                                value: "periode",
+                                value_text: payload_info.message_variable.invoice_date,
                             },
                             {
                                 key: "5",
-                                value_text: "total",
-                                value: payload_info.message_variable.total,
+                                value: "total",
+                                value_text: payload_info.message_variable.total,
                             },
                             {
                                 key: "6",
-                                value_text: "due_date",
-                                value: payload_info.message_variable.full_name,
+                                value: "due_date",
+                                value_text: payload_info.message_variable.due_date,
                             },
                             {
                                 key: "7",
-                                value_text: "invoice_digital_url",
-                                value: payload_info.message_variable.invoice_digital_url,
+                                value: "invoice_url",
+                                value_text: payload_info.message_variable.invoice_digital_url,
                             }
                         ]
                     }
                 }
             };
 
-            console.log("payload =>", JSON.stringify(send_message_payload));
-
             return await firstValueFrom(this._axiosService.onAxiosRequest(send_message_payload));
 
         } catch (error) {
-            console.log("error sendMessageInvoiceXendit =>", error);
             throw error;
         }
     }
 
-    private async sendMessagePembayaran(invoice: any, payload_info: any) {
+    private async sendMessagePembayaran(invoice: any, payload_info: any, channel_whatsapp: any) {
         try {
             const send_message_payload = {
                 method: payload_info.method,
                 url: payload_info.url,
-                headers: payload_info.headers,
+                headers: this.generateHeader(payload_info.method, payload_info.url, channel_whatsapp),
                 data: {
                     to_name: invoice.pelanggan.full_name,
                     to_number: invoice.pelanggan.whatsapp,
@@ -235,12 +231,12 @@ export class QontakWapService {
         }
     }
 
-    private async sendMessageInvoiceManual(invoice: any, payload_info: any) {
+    private async sendMessageInvoiceManual(invoice: any, payload_info: any, channel_whatsapp: any) {
         try {
             const send_message_payload = {
                 method: payload_info.method,
                 url: payload_info.url,
-                headers: payload_info.headers,
+                headers: this.generateHeader(payload_info.method, payload_info.url, channel_whatsapp),
                 data: {
                     to_name: invoice.pelanggan.full_name,
                     to_number: invoice.pelanggan.whatsapp,
@@ -254,7 +250,7 @@ export class QontakWapService {
                             {
                                 index: "0",
                                 type: "URL",
-                                value: payload_info.message_variable.invoice_digital_url
+                                value: payload_info.message_variable.checkout_url.replace("https://checkout.linkbit.net.id", "")
                             },
                         ],
                         body: [
