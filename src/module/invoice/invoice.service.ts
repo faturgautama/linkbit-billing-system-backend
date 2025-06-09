@@ -558,9 +558,10 @@ export class InvoiceService {
                     }
                 });
 
-            return await this._channelProviderRouterService.handleSendMessage(req, WhatsappChannelProviderModel.MESSAGE_TYPE.INVOICE, invoice);
+            return await this._channelProviderRouterService.handleSendMessage(req, 'INVOICE', invoice);
 
         } catch (error) {
+            console.log("error =>", error);
             throw new HttpException(
                 {
                     status: false,

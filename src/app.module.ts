@@ -51,6 +51,7 @@ import { InvoiceCronService } from './scheduler/invoice-cron.service';
 import { SendMessageCronService } from './scheduler/send-message-cron.service';
 import { ChannelProviderRouterService } from './helper/services/channel-whatsapp-provider/channel-provider-router.service';
 import { LinkbitWapService } from './helper/services/channel-whatsapp-provider/provider/linkbit-wap.service';
+import { QontakWapService } from './helper/services/channel-whatsapp-provider/provider/qontak-wap.service';
 
 @Module({
     imports: [
@@ -105,7 +106,8 @@ import { LinkbitWapService } from './helper/services/channel-whatsapp-provider/p
         LogActivityService,
         ChannelWhatsappService,
         LinkbitWapService,
-        ChannelProviderRouterService
+        ChannelProviderRouterService,
+        QontakWapService,
     ],
 })
 export class AppModule {

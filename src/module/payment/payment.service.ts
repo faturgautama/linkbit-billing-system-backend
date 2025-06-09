@@ -2023,7 +2023,7 @@ export class PaymentService {
                     }
                 });
 
-            return await this._channelProviderRouterService.handleSendMessage(req, WhatsappChannelProviderModel.MESSAGE_TYPE.PAYMENT, invoice);
+            return await this._channelProviderRouterService.handleSendMessage(req, 'PAYMENT', invoice);
 
         } catch (error) {
             throw new HttpException(

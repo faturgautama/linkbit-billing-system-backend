@@ -4,7 +4,7 @@ import { AxiosService } from 'src/helper/utility/axios.service';
 import { UtilityService } from 'src/helper/utility/utility.service';
 import { WhatsappChannelProviderModel } from '../channel-provider.model';
 
-@Injectable({ scope: Scope.TRANSIENT })
+@Injectable()
 export class LinkbitWapService {
 
     constructor(
@@ -12,7 +12,7 @@ export class LinkbitWapService {
         private _utilityService: UtilityService,
     ) { }
 
-    async handleSendMessage(type: WhatsappChannelProviderModel.MESSAGE_TYPE, invoice: any, channel_whatsapp: any) {
+    async handleSendMessage(type: string, invoice: any, channel_whatsapp: any) {
         return type == 'INVOICE'
             ? await this.sendInvoiceMessage(invoice, channel_whatsapp)
             : await this.sendPaymentMessage(invoice, channel_whatsapp);
@@ -46,7 +46,7 @@ export class LinkbitWapService {
 
             const payloadSendMessageMpwa = {
                 method: 'get',
-                url: `${channel_whatsapp.base_url}/send-message`,
+                url: `${channel_whatsapp.api_url}/send-message`,
                 params: {
                     api_key: invoice.pelanggan.setting_company.api_key_wa,
                     sender: invoice.pelanggan.setting_company.company_whatsapp,
@@ -57,6 +57,7 @@ export class LinkbitWapService {
 
             return await firstValueFrom(this._axiosService.onAxiosRequest(payloadSendMessageMpwa));
         } catch (error) {
+            console.log("error sendInvoiceMessage linkbit wap =>", error);
             throw error;
         }
     }
@@ -88,7 +89,7 @@ export class LinkbitWapService {
 
             const payloadSendMessageMpwa = {
                 method: 'get',
-                url: `${channel_whatsapp.base_url}/send-message`,
+                url: `${channel_whatsapp.api_url}/send-message`,
                 params: {
                     api_key: invoice.pelanggan.setting_company.api_key_wa,
                     sender: invoice.pelanggan.setting_company.company_whatsapp,
@@ -99,6 +100,7 @@ export class LinkbitWapService {
 
             return await firstValueFrom(this._axiosService.onAxiosRequest(payloadSendMessageMpwa));
         } catch (error) {
+            console.log("error sendPaymentMessage linkbit wap =>", error);
             throw error;
         }
     }

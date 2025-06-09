@@ -134,6 +134,7 @@ export class InvoiceController {
             return res.status(HttpStatus.OK).json(data);
 
         } catch (error) {
+            console.log("error =>", error);
             const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
             return res.status(status).json({
                 status: false,

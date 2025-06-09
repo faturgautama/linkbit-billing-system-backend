@@ -287,14 +287,27 @@ export class SettingCompanyService {
                 .findMany({
                     where: {
                         id_setting_company: parseInt(id_setting_company as any),
-                        is_active: true
+                        is_active: true,
+                    },
+                    include: {
+                        channel_whatsapp: {
+                            select: {
+                                channel_whatsapp: true
+                            }
+                        }
                     }
                 });
 
             return {
                 status: true,
                 message: '',
-                data: res
+                data: res.map((item: any) => {
+                    const { channel_whatsapp, ...data } = item;
+                    return {
+                        ...data,
+                        channel_whatsapp: channel_whatsapp.channel_whatsapp
+                    }
+                })
             }
 
         } catch (error) {

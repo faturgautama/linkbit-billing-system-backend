@@ -5,7 +5,7 @@ import { LinkbitWapService } from "./provider/linkbit-wap.service";
 import { Request } from "express";
 import { QontakWapService } from "./provider/qontak-wap.service";
 
-@Injectable({ scope: Scope.TRANSIENT })
+@Injectable()
 export class ChannelProviderRouterService {
 
     constructor(
@@ -14,7 +14,7 @@ export class ChannelProviderRouterService {
         private _linkbitWapService: LinkbitWapService,
     ) { }
 
-    async handleSendMessage(req: Request, type: WhatsappChannelProviderModel.MESSAGE_TYPE, data: any) {
+    async handleSendMessage(req: Request, type: string, data: any) {
         try {
             const id_setting_company = parseInt(req['user']['id_setting_company']);
             const channel_whatsapp_default = await this._prismaService

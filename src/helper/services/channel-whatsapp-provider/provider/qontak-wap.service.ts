@@ -4,8 +4,9 @@ import { AxiosService } from 'src/helper/utility/axios.service';
 import { UtilityService } from 'src/helper/utility/utility.service';
 import { WhatsappChannelProviderModel } from '../channel-provider.model';
 import * as crypto from 'crypto';
+import * as url from 'url';
 
-@Injectable({ scope: Scope.TRANSIENT })
+@Injectable()
 export class QontakWapService {
 
 
@@ -14,39 +15,53 @@ export class QontakWapService {
         private _utilityService: UtilityService,
     ) { }
 
-    async handleSendMessage(type: WhatsappChannelProviderModel.MESSAGE_TYPE, invoice: any, channel_whatsapp: any) {
+    async handleSendMessage(type: string, invoice: any, channel_whatsapp: any) {
         return await this.getListTemplate(type, invoice, channel_whatsapp);
     }
 
     private generateHeader(method: string, path: string, channel_whatsapp: any) {
-        let datetime = new Date().toUTCString();
-        let requestLine = `${method} ${path} HTTP/1.1`;
-        let payload = [`date: ${datetime}`, requestLine].join("\n");
-        let signature = crypto.createHmac('SHA256', channel_whatsapp.credential.client_secret).update(payload).digest('base64');
+        const requestUrl = url.parse(path);
+        const datetime = new Date().toUTCString();
+        const requestLine = `${method.toUpperCase()} ${requestUrl.path} HTTP/1.1`;
+        const payload = [`date: ${datetime}`, requestLine].join('\n');
 
-        return {
+        // Generate the signature
+        const signature = crypto
+            .createHmac('sha256', channel_whatsapp.credential.client_secret)
+            .update(payload)
+            .digest('base64');
+
+        // Build Authorization header string
+        const hmacHeader = `hmac username="${channel_whatsapp.credential.client_id}", algorithm="hmac-sha256", headers="date request-line", signature="${signature}"`;
+
+        // Now set headers
+        const headers = {
             'Content-Type': 'application/json',
             'Date': datetime,
-            'Authorization': `hmac username="${channel_whatsapp.credential.client_id}", algorithm="hmac-sha256", headers="date request-line", signature="${signature}"`
+            'Authorization': hmacHeader
         };
+
+        return headers;
     }
 
-    private async getListTemplate(type: WhatsappChannelProviderModel.MESSAGE_TYPE, invoice: any, channel_whatsapp: any) {
+    private async getListTemplate(type: string, invoice: any, channel_whatsapp: any) {
         try {
             const method = 'get';
-            const url = `${channel_whatsapp.channel_whatsapp.base_url}/templates/whatsapp`;
+            const url = `${channel_whatsapp.channel_whatsapp.api_url}/templates/whatsapp`;
             const headers = this.generateHeader(method, url, channel_whatsapp);
+
             const payload_get_list_template = {
                 method: method,
                 url: url,
                 headers: headers
             };
+
             const templates = await firstValueFrom(this._axiosService.onAxiosRequest(payload_get_list_template));
 
-            if (!templates) {
+            if (!templates.status) {
                 return {
                     status: false,
-                    message: 'Template Not Found'
+                    message: templates.message
                 }
             };
 
@@ -59,9 +74,9 @@ export class QontakWapService {
 
             const payload_info = {
                 method: 'post',
-                url: `${channel_whatsapp.channel_whatsapp.base_url}/broadcasts/whatsapp/direct`,
+                url: `${channel_whatsapp.channel_whatsapp.api_url}/broadcasts/whatsapp/direct`,
                 headers: this.generateHeader(method, url, channel_whatsapp),
-                message_template_id: templates.find(item => item.name == template_name).id,
+                message_template_id: templates.data.data.find(item => item.name == template_name).id,
                 message_variable: {
                     full_name: invoice.pelanggan.full_name,
                     pelanggan_code: invoice.pelanggan.pelanggan_code,
@@ -112,47 +127,50 @@ export class QontakWapService {
                         body: [
                             {
                                 key: "1",
-                                value: "customer_name",
-                                value_text: payload_info.message_variable.full_name,
+                                value_text: "customer_name",
+                                value: payload_info.message_variable.full_name,
                             },
                             {
                                 key: "2",
-                                value: "pelanggan_code",
-                                value_text: payload_info.message_variable.pelanggan_code,
+                                value_text: "pelanggan_code",
+                                value: payload_info.message_variable.pelanggan_code,
                             },
                             {
                                 key: "3",
-                                value: "product_name",
-                                value_text: payload_info.message_variable.product_name,
+                                value_text: "product_name",
+                                value: payload_info.message_variable.product_name,
                             },
                             {
                                 key: "4",
-                                value: "periode",
-                                value_text: payload_info.message_variable.invoice_date,
+                                value_text: "periode",
+                                value: payload_info.message_variable.invoice_date,
                             },
                             {
                                 key: "5",
-                                value: "total",
-                                value_text: payload_info.message_variable.total,
+                                value_text: "total",
+                                value: payload_info.message_variable.total,
                             },
                             {
                                 key: "6",
-                                value: "due_date",
-                                value_text: payload_info.message_variable.full_name,
+                                value_text: "due_date",
+                                value: payload_info.message_variable.full_name,
                             },
                             {
                                 key: "7",
-                                value: "invoice_digital_url",
-                                value_text: payload_info.message_variable.invoice_digital_url,
+                                value_text: "invoice_digital_url",
+                                value: payload_info.message_variable.invoice_digital_url,
                             }
                         ]
                     }
                 }
             };
 
+            console.log("payload =>", JSON.stringify(send_message_payload));
+
             return await firstValueFrom(this._axiosService.onAxiosRequest(send_message_payload));
 
         } catch (error) {
+            console.log("error sendMessageInvoiceXendit =>", error);
             throw error;
         }
     }
