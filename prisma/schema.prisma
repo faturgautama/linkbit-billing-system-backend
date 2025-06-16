@@ -205,6 +205,9 @@ model pelanggan {
     create_by            Int
     update_at            DateTime?
     update_by            Int?
+    is_delete            Boolean?            @default(false)
+    delete_at            DateTime?
+    delete_by            Int?
     pelanggan_product    pelanggan_product[]
     invoice              invoice[]
     payment              payment[]

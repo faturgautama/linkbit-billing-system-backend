@@ -21,48 +21,94 @@ export class InvoiceService {
 
     async getAll(req: Request, query: InvoiceModel.IInvoiceQueryParams): Promise<InvoiceModel.GetAllInvoice> {
         try {
-            let queries: any = {
+            const queries: any = {
                 ...query,
-                is_deleted: false
+                is_deleted: false,
             };
 
-            let newQueries: any = Object.keys(queries).reduce((aggregate, property) => {
-                if (property == 'is_deleted') {
-                    aggregate[property] = false;
-                };
-
-                if (property == 'id_invoice' || property == 'id_product' || property == 'id_setting_company' || property == 'id_pelanggan') {
-                    aggregate[property] = parseInt(queries[property] as any);
-                };
-
-                if (property == 'invoice_date') {
-                    const queryDate = new Date(queries[property]);
-                    const year = queryDate.getFullYear();
-                    const month = queryDate.getMonth(); // No need to subtract 1
-
-                    const startDate = new Date(year, month, 1); // First day of the month
-                    const endDate = new Date(year, month + 1, 1); // First day of the next month
-
-                    aggregate[property] = {
-                        gt: startDate, // Greater than or equal to the first day of the month
-                        lt: endDate, // Less than the first day of the next month
-                    };
-                };
-
-                if (property == 'invoice_number' || property == 'invoice_status') {
-                    aggregate[property] = {
-                        contains: queries[property],
-                        mode: 'insensitive'
-                    }
-                };
-
-                return aggregate;
-            }, {});
-
-
-            newQueries.pelanggan = {
-                id_setting_company: parseInt(req['user']['id_setting_company'])
+            // 1. Advanced filter object
+            let newQueries: any = {
+                AND: [], // We'll push advanced filters here
             };
+
+            // 2. Parse and build individual field filters
+            Object.entries(queries).forEach(([key, value]) => {
+                if (value === undefined || value === null || value === '') return;
+
+                if (key === 'is_deleted') {
+                    newQueries.AND.push({ is_deleted: false });
+                } else if (['id_invoice', 'id_product', 'id_setting_company', 'id_pelanggan'].includes(key)) {
+                    newQueries.AND.push({ [key]: parseInt(value as any) });
+                } else if (key === 'invoice_date') {
+                    const date = new Date(value as any);
+                    const start = new Date(date.getFullYear(), date.getMonth(), 1);
+                    const end = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+                    newQueries.AND.push({
+                        invoice_date: {
+                            gt: start,
+                            lt: end,
+                        }
+                    });
+                } else if (key === 'invoice_number' || key === 'invoice_status') {
+                    newQueries.AND.push({
+                        [key]: {
+                            contains: value,
+                            mode: 'insensitive'
+                        }
+                    });
+                } else if (key === 'pelanggan_code' || key === 'full_name') {
+                    // These are in nested pelanggan relation
+                    newQueries.AND.push({
+                        pelanggan: {
+                            [key]: {
+                                contains: value,
+                                mode: 'insensitive'
+                            }
+                        }
+                    });
+                } else if (key === 'product_name') {
+                    // These are in nested product relation
+                    newQueries.AND.push({
+                        product: {
+                            [key]: {
+                                contains: value,
+                                mode: 'insensitive'
+                            }
+                        }
+                    });
+                }
+            });
+
+            // 3. Global search
+            if (queries.search && typeof queries.search === 'string') {
+                const s = queries.search.trim();
+                const isValidDate = !isNaN(Date.parse(s));
+
+                const globalSearchOR: any[] = [
+                    { invoice_number: { contains: s, mode: 'insensitive' } },
+                    { invoice_status: { contains: s, mode: 'insensitive' } },
+                    { pelanggan: { full_name: { contains: s, mode: 'insensitive' } } },
+                    { pelanggan: { pelanggan_code: { contains: s, mode: 'insensitive' } } },
+                    { product: { product_name: { contains: s, mode: 'insensitive' } } }
+                ];
+
+                if (isValidDate) {
+                    globalSearchOR.push({
+                        invoice_date: {
+                            equals: new Date(s)
+                        }
+                    });
+                }
+
+                newQueries.OR = globalSearchOR;
+            }
+
+            // 4. Add perusahaan filter
+            newQueries.AND.push({
+                pelanggan: {
+                    id_setting_company: parseInt(req['user']['id_setting_company'])
+                }
+            });
 
             let res = await this._prismaService
                 .invoice

@@ -46,15 +46,13 @@ export namespace InvoiceModel {
     }
 
     export class IInvoiceQueryParams {
-        id_setting_company?: string;
-        id_pelanggan?: string;
-        id_product?: string;
         invoice_number?: string;
         invoice_date?: string;
-
-        @IsOptional()
-        @IsEnum(InvoiceStatus)
-        invoice_status?: InvoiceStatus;
+        full_name?: string;
+        pelanggan_code?: string;
+        id_product?: string;
+        invoice_status?: string;
+        search?: string;
     }
 
     export class GetAllInvoice {

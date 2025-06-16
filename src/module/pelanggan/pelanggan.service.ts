@@ -12,25 +12,58 @@ export class PelangganService {
 
     async getAll(req: Request, query: PelangganModel.IPelangganQueryParams): Promise<PelangganModel.GetAllPelanggan> {
         try {
-            let newQueries: any = Object.keys(query).reduce((aggregate, property) => {
-                if (property == 'id_group_pelanggan' || property == 'id_setting_company') {
-                    aggregate[property] = parseInt(query[property] as any);
-                }
+            let searchTerm = query.search?.toString().trim();
 
-                if (property == 'is_active') {
-                    aggregate[property] = JSON.parse(query[property] as any)
-                }
+            let newQueries: any = {
+                id_setting_company: parseInt(req['user']['id_setting_company'])
+            };
 
-                if (property == 'full_name' || property == 'pelanggan_code') {
-                    aggregate[property] = {
-                        contains: query[property],
-                        mode: 'insensitive'
+            if (query.is_active !== undefined) {
+                newQueries.is_active = JSON.parse(query.is_active as any);
+            };
+
+            if (searchTerm) {
+                newQueries.OR = [
+                    {
+                        full_name: {
+                            contains: searchTerm,
+                            mode: 'insensitive'
+                        }
+                    },
+                    {
+                        pelanggan_code: {
+                            contains: searchTerm,
+                            mode: 'insensitive'
+                        }
+                    },
+                    {
+                        alamat: {
+                            contains: searchTerm,
+                            mode: 'insensitive'
+                        }
+                    },
+                    {
+                        whatsapp: {
+                            contains: searchTerm,
+                            mode: 'insensitive'
+                        }
+                    },
+                    {
+                        pelanggan_product: {
+                            some: {
+                                product: {
+                                    product_name: {
+                                        contains: searchTerm,
+                                        mode: 'insensitive'
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
-                return aggregate;
-            }, {});
+                ]
+            };
 
-            newQueries.id_setting_company = parseInt(req['user']['id_setting_company']);
+            newQueries.is_delete = false;
 
             let res: any[] = await this._prismaService
                 .pelanggan
@@ -300,6 +333,74 @@ export class PelangganService {
                 status: true,
                 message: '',
                 data: res
+            }
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
+    async delete(req: Request, id_pelanggan: string): Promise<any> {
+        try {
+            let res = await this._prismaService
+                .pelanggan
+                .update({
+                    where: { id_pelanggan: parseInt(id_pelanggan as any) },
+                    data: {
+                        is_active: true,
+                        is_delete: true,
+                        delete_at: new Date(),
+                        delete_by: parseInt(req['user']['id_user'] as any)
+                    }
+                });
+
+            if (!res) {
+                return {
+                    status: false,
+                    message: 'Delete pelanggan failed',
+                    data: null
+                }
+            }
+
+            let pelanggan_product = await this._prismaService
+                .pelanggan_product
+                .findFirst({
+                    where: {
+                        id_pelanggan: parseInt(id_pelanggan as any),
+                    }
+                });
+
+            if (pelanggan_product) {
+                await this._prismaService
+                    .pelanggan_product
+                    .update({
+                        where: {
+                            id_pelanggan_product: parseInt(pelanggan_product.id_pelanggan_product as any)
+                        },
+                        data: {
+                            is_active: false,
+                            update_at: new Date(),
+                            update_by: parseInt(req['user']['id_user'] as any)
+                        }
+                    });
+            }
+
+            return {
+                status: true,
+                message: 'Delete pelanggan success',
+                data: res.id_pelanggan
             }
 
         } catch (error) {
