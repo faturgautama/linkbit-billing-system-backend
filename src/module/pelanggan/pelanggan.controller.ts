@@ -109,6 +109,25 @@ export class PelangganController {
         }
     }
 
+    @Put('delete/:id_pelanggan')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    @ApiResponse({ status: 200, description: 'Success', type: PelangganModel.GetByIdPelanggan })
+    async delete(@Param('id_pelanggan') id_pelanggan: string, @Req() req: Request, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._pelangganService.delete(req, id_pelanggan);
+            return res.status(HttpStatus.OK).json(data);
+
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
+
     @Put('update-product-pelanggan')
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')

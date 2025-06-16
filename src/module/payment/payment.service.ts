@@ -28,117 +28,153 @@ export class PaymentService {
 
     async getAll(req: Request, query: PaymentModel.IPaymentQueryParams): Promise<PaymentModel.GetAllPayment> {
         try {
-            let queries: any = {
-                ...query,
+            const queries = Object.entries(query).reduce((acc, [key, value]) => {
+                if (value !== undefined && value !== null && value !== '') {
+                    acc[key] = value;
+                }
+                return acc;
+            }, {} as Record<string, any>);
+
+            const newQueries: any = {
+                // Direct filters on payment
+                ...(queries.payment_status && {
+                    payment_status: { contains: queries.payment_status, mode: 'insensitive' },
+                }),
+                ...(queries.payment_method && {
+                    payment_method: { contains: queries.payment_method, mode: 'insensitive' },
+                }),
+                ...(queries.payment_number && {
+                    payment_number: { contains: queries.payment_number, mode: 'insensitive' },
+                }),
+                ...(queries.payment_date && {
+                    payment_date: (() => {
+                        const date = new Date(queries.payment_date);
+                        const start = new Date(date.setHours(0, 0, 0, 0));
+                        const end = new Date(date.setHours(23, 59, 59, 999));
+                        return { gte: start, lte: end };
+                    })()
+                }),
+
+                // Relations
+                invoice: {
+                    ...(queries.invoice_number && {
+                        invoice_number: { contains: queries.invoice_number, mode: 'insensitive' },
+                    }),
+                    ...(queries.invoice_date && (() => {
+                        const date = new Date(queries.invoice_date);
+                        const year = date.getFullYear();
+                        const month = date.getMonth();
+                        const start = new Date(year, month, 1);
+                        const end = new Date(year, month + 1, 1);
+                        return { invoice_date: { gt: start, lt: end } };
+                    })())
+                },
+
+                pelanggan: {
+                    id_setting_company: parseInt(req['user']['id_setting_company']),
+                    ...(queries.full_name && {
+                        full_name: { contains: queries.full_name, mode: 'insensitive' },
+                    }),
+                    ...(queries.pelanggan_code && {
+                        pelanggan_code: { contains: queries.pelanggan_code, mode: 'insensitive' },
+                    }),
+                },
+
+                product: queries.product_name
+                    ? { product_name: { contains: queries.product_name, mode: 'insensitive' } }
+                    : undefined
             };
 
-            let newQueries: any = Object.keys(queries).reduce((aggregate, property) => {
-                if (property == 'is_deleted') {
-                    aggregate[property] = false;
-                };
-
-                if (property == 'id_invoice' || property == 'id_product' || property == 'id_setting_company' || property == 'id_pelanggan') {
-                    aggregate[property] = parseInt(queries[property] as any);
-                };
-
-                if (property == 'invoice_date') {
-                    const queryDate = new Date(queries[property]);
-                    const year = queryDate.getFullYear();
-                    const month = queryDate.getMonth(); // No need to subtract 1
-
-                    const startDate = new Date(year, month, 1); // First day of the month
-                    const endDate = new Date(year, month + 1, 1); // First day of the next month
-
-                    aggregate['invoice'] = {
-                        invoice_date: {
-                            gt: startDate, // Greater than or equal to the first day of the month
-                            lt: endDate, // Less than the first day of the next month
-                        }
-                    }
-                };
-
-                return aggregate;
-            }, {});
-
-            newQueries.pelanggan = {
-                id_setting_company: parseInt(req['user']['id_setting_company'])
+            // 🔍 Unified Search Query
+            if (queries.search) {
+                const keyword = queries.search;
+                newQueries.OR = [
+                    { payment_status: { contains: keyword, mode: 'insensitive' } },
+                    { payment_method: { contains: keyword, mode: 'insensitive' } },
+                    { pelanggan: { full_name: { contains: keyword, mode: 'insensitive' } } },
+                    { pelanggan: { pelanggan_code: { contains: keyword, mode: 'insensitive' } } },
+                    { pelanggan: { alamat: { contains: keyword, mode: 'insensitive' } } },
+                    { invoice: { invoice_number: { contains: keyword, mode: 'insensitive' } } },
+                    { product: { product_name: { contains: keyword, mode: 'insensitive' } } },
+                ];
             }
 
-            let res = await this._prismaService
-                .payment
-                .findMany({
-                    where: newQueries,
-                    include: {
-                        invoice: {
-                            select: {
-                                due_date: true,
-                                invoice_number: true,
-                                invoice_date: true,
-                                total: true,
-                                invoice_status: true,
-                            }
-                        },
-                        pelanggan: {
-                            select: {
-                                id_pelanggan: true,
-                                full_name: true,
-                                pelanggan_code: true,
-                                alamat: true,
-                                setting_company: {
-                                    select: {
-                                        id_setting_company: true,
-                                        company_name: true
-                                    }
-                                }
-                            }
-                        },
-                        product: {
-                            select: {
-                                id_product: true,
-                                product_name: true,
-                            },
+            // 🧹 Clean up empty relation filters
+            if (newQueries.invoice && Object.keys(newQueries.invoice).length === 0) delete newQueries.invoice;
+            if (newQueries.pelanggan && Object.keys(newQueries.pelanggan).length === 0) delete newQueries.pelanggan;
+            if (!newQueries.product) delete newQueries.product;
+
+            const res = await this._prismaService.payment.findMany({
+                where: newQueries,
+                include: {
+                    invoice: {
+                        select: {
+                            due_date: true,
+                            invoice_number: true,
+                            invoice_date: true,
+                            total: true,
+                            invoice_status: true,
                         }
                     },
-                    orderBy: {
-                        id_invoice: 'asc'
+                    pelanggan: {
+                        select: {
+                            id_pelanggan: true,
+                            full_name: true,
+                            pelanggan_code: true,
+                            alamat: true,
+                            setting_company: {
+                                select: {
+                                    id_setting_company: true,
+                                    company_name: true,
+                                }
+                            }
+                        }
+                    },
+                    product: {
+                        select: {
+                            id_product: true,
+                            product_name: true,
+                        }
                     }
-                });
+                },
+                orderBy: {
+                    id_invoice: 'asc'
+                }
+            });
 
             return {
                 status: true,
                 message: '',
-                data: res.map((item) => {
-                    return {
-                        id_payment: item.id_payment,
-                        id_invoice: item.id_invoice,
-                        invoice_number: item.invoice.invoice_number,
-                        invoice_date: item.invoice.invoice_date,
-                        due_date: item.invoice.due_date,
-                        invoice_status: item.invoice.invoice_status,
-                        total: item.invoice.total,
-                        id_pelanggan: item.id_pelanggan,
-                        id_setting_company: item.pelanggan.setting_company.id_setting_company,
-                        company_name: item.pelanggan.setting_company.company_name,
-                        full_name: item.pelanggan.full_name,
-                        alamat: item.pelanggan.alamat,
-                        pelanggan_code: item.pelanggan.pelanggan_code,
-                        id_product: item.id_product,
-                        product_name: item.product.product_name,
-                        payment_token: item.payment_token,
-                        payment_id: item.payment_id,
-                        payment_number: item.payment_number,
-                        payment_date: item.payment_date,
-                        payment_method: item.payment_method,
-                        payment_status: item.payment_status,
-                        payment_amount: item.payment_amount,
-                        payment_provider: item.payment_provider,
-                        create_at: item.create_at,
-                        create_by: item.create_by,
-                        update_at: item.update_at,
-                        update_by: item.update_by,
-                    }
-                })
-            }
+                data: res.map(item => ({
+                    id_payment: item.id_payment,
+                    id_invoice: item.id_invoice,
+                    invoice_number: item.invoice.invoice_number,
+                    invoice_date: item.invoice.invoice_date,
+                    due_date: item.invoice.due_date,
+                    invoice_status: item.invoice.invoice_status,
+                    total: item.invoice.total,
+                    id_pelanggan: item.id_pelanggan,
+                    id_setting_company: item.pelanggan.setting_company.id_setting_company,
+                    company_name: item.pelanggan.setting_company.company_name,
+                    full_name: item.pelanggan.full_name,
+                    alamat: item.pelanggan.alamat,
+                    pelanggan_code: item.pelanggan.pelanggan_code,
+                    id_product: item.id_product,
+                    product_name: item.product.product_name,
+                    payment_token: item.payment_token,
+                    payment_id: item.payment_id,
+                    payment_number: item.payment_number,
+                    payment_date: item.payment_date,
+                    payment_method: item.payment_method,
+                    payment_status: item.payment_status,
+                    payment_amount: item.payment_amount,
+                    payment_provider: item.payment_provider,
+                    create_at: item.create_at,
+                    create_by: item.create_by,
+                    update_at: item.update_at,
+                    update_by: item.update_by,
+                }))
+            };
 
         } catch (error) {
             const status = error.message.includes('not found')

@@ -23,11 +23,7 @@ export namespace PelangganModel {
     }
 
     export class IPelangganQueryParams {
-        id_setting_company?: string;
-        id_group_pelanggan?: number;
-        full_name?: string;
-        pelanggan_code?: string;
-        phone?: string;
+        search?: string;
         is_active?: boolean;
     }
 

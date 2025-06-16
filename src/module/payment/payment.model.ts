@@ -27,12 +27,16 @@ export namespace PaymentModel {
     }
 
     export class IPaymentQueryParams {
-        id_setting_company?: string;
-        id_pelanggan?: string;
-        id_product?: string;
-        payment_number?: string;
+        invoice_number?: string;
         invoice_date?: string;
+        pelanggan_code?: string;
+        full_name?: string;
+        product_name?: string;
+        payment_date?: string;
+        payment_number?: string;
         payment_method?: string;
+        payment_status?: string;
+        search?: string;
     }
 
     export class GetAllPayment {
