@@ -210,46 +210,50 @@ export class DashboardService {
         }
     }
 
-    async getDashboardPaymentYearly(req: Request, year: string): Promise<DashboardModel.GetDashboardPaymentMonthly> {
+    async getDashboardPaymentYearly(req: Request, year: string): Promise<DashboardModel.GetDashboardPaymentYearly> {
         try {
-            const start_date = format(new Date(`${year}-01-01`), 'yyyy-MM-dd');
-            const end_date = format(new Date(`${year}-12-31`), 'yyyy-MM-dd');
+            const start_date = new Date(`${year}-01-01T00:00:00.000Z`);
+            const end_date = new Date(`${year}-12-31T23:59:59.999Z`);
 
-            // Buat array untuk tiap bulan (Jan - Dec)
+            // Initialize months with both PAID and PENDING fields
             const months = Array.from({ length: 12 }, (_, index) => {
-                const month = index + 1;
+                const month = (index + 1).toString().padStart(2, '0');
                 return {
-                    month: format(new Date(`${year}-${month.toString().padStart(2, '0')}-01`), 'yyyy-MM'),
-                    total: 0
+                    month: `${year}-${month}`,
+                    total_paid: 0,
+                    total_unpaid: 0
                 };
             });
 
-            let res: DashboardModel.IDashboardPaymentMonthly[] = months;
+            let res: DashboardModel.IDashboardPaymentYearly[] = months;
 
-            // Ambil data payment yang statusnya 'PAID' selama 1 tahun
+            // Get all payments (PAID or PENDING) in the year
             const payments = await this._prismaService.payment.findMany({
                 where: {
-                    payment_status: 'PAID',
+                    payment_status: {
+                        in: ['PAID', 'PENDING']
+                    },
                     pelanggan: {
                         id_setting_company: parseInt(req['user']['id_setting_company'])
                     },
                     create_at: {
-                        gte: `${start_date}T00:00:00.000Z`,
-                        lte: `${end_date}T23:59:59.999Z`,
+                        gte: start_date,
+                        lte: end_date,
                     },
                 },
                 select: {
                     create_at: true,
-                    payment_amount: true
+                    payment_amount: true,
+                    payment_status: true
                 }
             });
 
-            // Group dan total berdasarkan bulan (yyyy-MM)
+            // Group totals by month and status
             payments.forEach(payment => {
-                const paymentMonth = format(new Date(payment.create_at), 'yyyy-MM');
-                const monthEntry = res.find(entry => entry.month === paymentMonth);
-                if (monthEntry) {
-                    monthEntry.total += payment.payment_amount;
+                const monthKey = format(new Date(payment.create_at), 'yyyy-MM');
+                const entry = res.find(item => item.month === monthKey);
+                if (entry && (payment.payment_status === 'PAID' || payment.payment_status === 'PENDING')) {
+                    entry[payment.payment_status] += payment.payment_amount;
                 }
             });
 

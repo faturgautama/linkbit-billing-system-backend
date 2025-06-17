@@ -4,6 +4,7 @@ import { PrismaService } from 'src/prisma.service';
 import { firstValueFrom } from 'rxjs';
 import { AxiosService } from 'src/helper/utility/axios.service';
 import { UtilityService } from 'src/helper/utility/utility.service';
+import { ChannelProviderRouterService } from 'src/helper/services/channel-whatsapp-provider/channel-provider-router.service';
 
 @Injectable()
 export class SendMessageCronService {
@@ -13,6 +14,7 @@ export class SendMessageCronService {
         private _axiosService: AxiosService,
         private _prismaService: PrismaService,
         private _utilityService: UtilityService,
+        private _channelProviderRouterService: ChannelProviderRouterService,
     ) { }
 
     @Cron(process.env.CRONJOB_SEND_MESSAGE, { timeZone: 'Asia/Jakarta', name: 'send_invoice_notifications' })
@@ -51,85 +53,13 @@ export class SendMessageCronService {
 
         for (const invoice of invoices) {
             console.log("invoice =>", invoice);
-            await this.sendMessage(invoice);
+            const req: any = {
+                user: {
+                    id_setting_company: invoice.pelanggan.id_setting_company
+                }
+            }
+            await this._channelProviderRouterService.handleSendMessage(req, 'INVOICE', invoice);
             await this.sleep(20000); // tunggu 20 detik
-        }
-    }
-
-    async sendMessage(invoice: any): Promise<any> {
-        if (!invoice.pelanggan.setting_company.api_key_wa) {
-            return {
-                status: false,
-                message: "API Key WA belum diatur"
-            }
-        };
-
-        const token = this._utilityService.onEncrypt(JSON.stringify(invoice.id_invoice));
-
-        const messageVariable = {
-            full_name: invoice.pelanggan.full_name,
-            pelanggan_code: invoice.pelanggan.pelanggan_code,
-            product_name: invoice.product.product_name,
-            invoice_date: this._utilityService.onFormatDate(new Date(invoice.invoice_date), 'MMM yyyy'),
-            invoice_number: invoice.invoice_number,
-            total: this._utilityService.onFormatCurrency(invoice.total),
-            checkout_url: `${process.env.CHECKOUT_URL}?token=${token}`,
-        }
-
-        const template = invoice.pelanggan.setting_company.tagihan_pesan_invoice;
-        const newTemplate = template.replace(/\${(.*?)}/g, (_, key) => messageVariable[key.trim()] || "");
-        const messageText = newTemplate
-            .replace(/<\/p>\s*<p>/g, '\n') // Replace consecutive <p> tags with a single line break
-            .replace(/<\/?[^>]+(>|$)/g, "") // Remove any remaining HTML tags
-            .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces with normal spaces
-            .replace(/&gt;/g, '>') // Replace `&gt;` with `>`
-            .replace(/&lt;/g, '<') // Replace `&lt;` with `<`
-            .replace(/&amp;/g, '&') // Replace `&amp;` with `&`
-            .trim(); // Remove any leading or trailing spaces
-
-        const payloadSendMessageMpwa = {
-            method: 'get',
-            url: `${process.env.MPWA_URL}/send-message`,
-            params: {
-                api_key: invoice.pelanggan.setting_company.api_key_wa,
-                sender: invoice.pelanggan.setting_company.company_whatsapp,
-                number: invoice.pelanggan.whatsapp,
-                message: messageText,
-            }
-        };
-
-        const mpwaSendMessageResult = await firstValueFrom(this._axiosService.onAxiosRequest(payloadSendMessageMpwa));
-
-        console.log("result send wa =>", mpwaSendMessageResult);
-
-        const { product, pelanggan, ...payloadLog } = invoice;
-
-        if (!mpwaSendMessageResult.status) {
-            await this._prismaService
-                .log_whatsapp_message
-                .create({
-                    data: {
-                        id_invoice: invoice.id_invoice,
-                        id_setting_company: invoice.pelanggan.id_setting_company,
-                        additional_info: payloadLog,
-                        sent_at: new Date(),
-                        sent_by: invoice.create_by,
-                        status: 'FAILED'
-                    }
-                });
-        } else {
-            await this._prismaService
-                .log_whatsapp_message
-                .create({
-                    data: {
-                        id_invoice: invoice.id_invoice,
-                        id_setting_company: invoice.pelanggan.id_setting_company,
-                        additional_info: payloadLog,
-                        sent_at: new Date(),
-                        sent_by: invoice.create_by,
-                        status: 'SUCCESS'
-                    }
-                });
         }
     }
 }

@@ -101,4 +101,12 @@ export namespace InvoiceModel {
         due_date: Date;
         notes?: string;
     }
+
+    export class SendMessageBatch {
+        data: IInvoiceBatch[]
+    };
+
+    export class IInvoiceBatch {
+        id_invoice: number;
+    }
 }
