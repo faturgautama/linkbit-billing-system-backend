@@ -618,6 +618,39 @@ export class InvoiceService {
         }
     }
 
+    async sendMessageBatch(req: Request, data: any[]): Promise<any> {
+        try {
+            for (const item of data) {
+                const invoice = await this._prismaService
+                    .invoice
+                    .findUnique({
+                        where: {
+                            id_invoice: parseInt(item.id_invoice)
+                        },
+                        include: {
+                            pelanggan: {
+                                include: {
+                                    setting_company: true
+                                }
+                            },
+                            product: true,
+                        }
+                    });
+
+                return await this._channelProviderRouterService.handleSendMessage(req, 'INVOICE', invoice);
+            }
+        } catch (error) {
+            console.log("error =>", error);
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.response.data.msg
+                },
+                HttpStatus.BAD_REQUEST
+            );
+        }
+    }
+
     async retriggerJobInvoice() {
         try {
             await this._invoiceCronService.generateInvoices();

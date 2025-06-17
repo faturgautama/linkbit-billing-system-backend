@@ -1,8 +1,7 @@
-import { Injectable, Scope } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 import { AxiosService } from 'src/helper/utility/axios.service';
 import { UtilityService } from 'src/helper/utility/utility.service';
-import { WhatsappChannelProviderModel } from '../channel-provider.model';
 import * as crypto from 'crypto';
 import * as url from 'url';
 
@@ -190,7 +189,7 @@ export class QontakWapService {
                             {
                                 index: "0",
                                 type: "URL",
-                                value: payload_info.message_variable.invoice_digital_url
+                                value: payload_info.message_variable.invoice_digital_url.replace("https://checkout.linkbit.net.id", "")
                             },
                         ],
                         body: [
