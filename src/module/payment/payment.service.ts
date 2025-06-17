@@ -2132,7 +2132,7 @@ export class PaymentService {
                         payment_token: "MANUAL",
                         payment_id: `${paymentMethodManual.payment_method}-${dataFromToken.invoice_number}`,
                         payment_number: paymentMethodManual.no_rekening,
-                        payment_date: new Date(),
+                        payment_date: new Date(payload.payment_date),
                         payment_status: "PAID",
                         payment_method: paymentMethodManual.payment_method,
                         payment_amount: dataFromToken.total,
