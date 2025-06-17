@@ -252,8 +252,12 @@ export class DashboardService {
             payments.forEach(payment => {
                 const monthKey = format(new Date(payment.create_at), 'yyyy-MM');
                 const entry = res.find(item => item.month === monthKey);
-                if (entry && (payment.payment_status === 'PAID' || payment.payment_status === 'PENDING')) {
-                    entry[payment.payment_status] += payment.payment_amount;
+                if (entry) {
+                    if (payment.payment_status === 'PAID') {
+                        entry.total_paid += payment.payment_amount;
+                    } else if (payment.payment_status === 'PENDING') {
+                        entry.total_unpaid += payment.payment_amount;
+                    }
                 }
             });
 
