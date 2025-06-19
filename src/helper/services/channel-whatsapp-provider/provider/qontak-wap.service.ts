@@ -8,7 +8,6 @@ import * as url from 'url';
 @Injectable()
 export class QontakWapService {
 
-
     constructor(
         private _axiosService: AxiosService,
         private _utilityService: UtilityService,

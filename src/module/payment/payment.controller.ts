@@ -226,6 +226,25 @@ export class PaymentController {
         }
     }
 
+    @Put('edit-payment-cash')
+    @UseGuards(JwtGuard)
+    @ApiBearerAuth('token')
+    @ApiResponse({ status: 200, description: 'Success', type: PaymentModel.GetByIdPayment })
+    async editPaymentCash(@Body() body: PaymentModel.UpdatePaymentCash, @Req() req: Request, @Res() res: Response): Promise<any> {
+        try {
+            const data = await this._paymentService.editPaymentManual(req, body);
+            return res.status(HttpStatus.OK).json(data);
+
+        } catch (error) {
+            const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            return res.status(status).json({
+                status: false,
+                message: error.message,
+                data: null,
+            });
+        }
+    }
+
     @Put('cancel/:id_payment')
     @UseGuards(JwtGuard)
     @ApiBearerAuth('token')

@@ -1340,6 +1340,44 @@ export class PaymentService {
         }
     }
 
+    async editPaymentManual(req: Request, payload: PaymentModel.UpdatePaymentCash): Promise<any> {
+        try {
+            const { id_payment, ...data } = payload;
+
+            let res = await this._prismaService
+                .payment
+                .update({
+                    where: { id_payment: parseInt(id_payment as any) },
+                    data: {
+                        ...data,
+                        update_at: new Date(),
+                        update_by: parseInt(req['user']['id_user'] as any)
+                    }
+                })
+
+            return {
+                status: true,
+                message: '',
+                data: res
+            }
+
+        } catch (error) {
+            const status = error.message.includes('not found')
+                ? HttpStatus.NOT_FOUND
+                : error.message.includes('bad request')
+                    ? HttpStatus.BAD_REQUEST
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+
+            throw new HttpException(
+                {
+                    status: false,
+                    message: error.message
+                },
+                status
+            );
+        }
+    }
+
     private getPaymentMethodCaraBayar(payment_method_code: string) {
         let payment_method_instructions = [];
 
