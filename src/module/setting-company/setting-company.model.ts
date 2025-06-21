@@ -1,3 +1,5 @@
+import { IsNotEmpty, IsString, IsEmail, IsNumber, IsBoolean, IsObject } from "class-validator";
+
 export namespace SettingCompanyModel {
     export class ISettingCompany {
         id_setting_company: number;
@@ -49,55 +51,184 @@ export namespace SettingCompanyModel {
     }
 
     export class CreateSettingCompany {
+        @IsNotEmpty()
+        @IsString()
         company_name: string;
+
+        @IsNotEmpty()
+        @IsEmail()
         company_email: string;
+
+        @IsNotEmpty()
+        @IsString()
         company_short_name: string;
+
+        @IsNotEmpty()
+        @IsString()
         company_address: string;
+
+        @IsNotEmpty()
+        @IsString()
         company_phone: string;
+
+        @IsNotEmpty()
+        @IsString()
         company_whatsapp: string;
+
+        @IsNotEmpty()
+        @IsEmail()
         company_email_admin: string;
+
+        @IsNotEmpty()
+        @IsString()
         company_nomor_rekening: string;
+
+        @IsNotEmpty()
+        @IsString()
         company_bank_name: string;
+
+        @IsNotEmpty()
+        @IsNumber()
         tagihan_ppn: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         tagihan_jatuh_tempo: number;
+
+        @IsNotEmpty()
+        @IsBoolean()
         tagihan_use_unik_kode: boolean;
+
+        @IsNotEmpty()
+        @IsNumber()
         tagihan_biaya_admin: number;
+
+        @IsNotEmpty()
+        @IsString()
         tagihan_pesan_invoice: string;
+
+        @IsNotEmpty()
+        @IsString()
         tagihan_pesan_lunas: string;
+
+        @IsNotEmpty()
+        @IsString()
         tagihan_editor_invoice: string;
+
+        @IsNotEmpty()
+        @IsString()
         tagihan_editor_pos: string;
+
+        @IsNotEmpty()
+        @IsBoolean()
         is_mitra: boolean;
+
+        @IsNotEmpty()
+        @IsBoolean()
         is_cabang: boolean;
+
+        @IsNotEmpty()
+        @IsString()
         api_key_pg: string;
+
+        @IsNotEmpty()
+        @IsString()
         api_key_wa: string;
     }
 
     export class UpdateSettingCompany {
+        @IsNotEmpty()
+        @IsNumber()
         id_setting_company: number;
+
+        @IsNotEmpty()
+        @IsString()
         company_name: string;
+
+        @IsNotEmpty()
+        @IsEmail()
         company_email: string;
+
+        @IsNotEmpty()
+        @IsString()
         company_short_name: string;
+
+        @IsNotEmpty()
+        @IsString()
         company_address: string;
+
+        @IsNotEmpty()
+        @IsString()
         company_phone: string;
+
+        @IsNotEmpty()
+        @IsString()
         company_whatsapp: string;
+
+        @IsNotEmpty()
+        @IsEmail()
         company_email_admin: string;
+
+        @IsNotEmpty()
+        @IsString()
         company_nomor_rekening: string;
+
+        @IsNotEmpty()
+        @IsString()
         company_bank_name: string;
+
+        @IsNotEmpty()
+        @IsNumber()
         tagihan_ppn: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         tagihan_jatuh_tempo: number;
+
+        @IsNotEmpty()
+        @IsBoolean()
         tagihan_use_unik_kode: boolean;
+
+        @IsNotEmpty()
+        @IsNumber()
         tagihan_biaya_admin: number;
+
+        @IsNotEmpty()
+        @IsString()
         tagihan_pesan_invoice: string;
+
+        @IsNotEmpty()
+        @IsString()
         tagihan_pesan_lunas: string;
+
+        @IsNotEmpty()
+        @IsString()
         tagihan_editor_invoice: string;
+
+        @IsNotEmpty()
+        @IsString()
         tagihan_editor_pos: string;
+
+        @IsNotEmpty()
+        @IsBoolean()
         is_active: boolean;
+
+        @IsNotEmpty()
+        @IsBoolean()
         is_mitra: boolean;
+
+        @IsNotEmpty()
+        @IsBoolean()
         is_cabang: boolean;
+
+        @IsNotEmpty()
+        @IsString()
         api_key_pg: string;
+
+        @IsNotEmpty()
+        @IsString()
         api_key_wa: string;
     }
-
     export class IPaymentMethodManual {
         id_payment_method_manual: number;
         payment_method: string;
@@ -116,14 +247,30 @@ export namespace SettingCompanyModel {
     }
 
     export class CreatePaymentMethodManual {
+        @IsNotEmpty()
+        @IsString()
         payment_method: string;
+
+        @IsNotEmpty()
+        @IsString()
         no_rekening: string;
     }
 
     export class UpdatePaymentMethodManual {
+        @IsNotEmpty()
+        @IsNumber()
         id_payment_method_manual: number;
+
+        @IsNotEmpty()
+        @IsString()
         payment_method: string;
+
+        @IsNotEmpty()
+        @IsString()
         no_rekening: string;
+
+        @IsNotEmpty()
+        @IsBoolean()
         is_active: boolean;
     }
 
@@ -146,16 +293,38 @@ export namespace SettingCompanyModel {
     }
 
     export class CreateSettingChannelWhatsapp {
+        @IsNotEmpty()
+        @IsNumber()
         id_channel_whatsapp: number;
+
+        @IsNotEmpty()
+        @IsObject()
         credential: any;
     }
 
     export class UpdateSettingChannelWhatsapp {
+        @IsNotEmpty()
+        @IsNumber()
         id_setting_channel_whatsapp: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         id_payment_method_manual: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         id_channel_whatsapp: number;
+
+        @IsNotEmpty()
+        @IsObject()
         credential: any;
+
+        @IsNotEmpty()
+        @IsBoolean()
         is_default: boolean;
+
+        @IsNotEmpty()
+        @IsBoolean()
         is_active: boolean;
     }
 }

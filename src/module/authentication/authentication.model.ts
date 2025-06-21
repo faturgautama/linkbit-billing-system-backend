@@ -1,6 +1,13 @@
+import { IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
+
 export namespace AuthenticationModel {
     export class ILoginPayload {
+        @IsNotEmpty()
+        @IsString()
         username: string;
+
+        @IsNotEmpty()
+        @IsString()
         password: string;
     }
 
@@ -27,15 +34,44 @@ export namespace AuthenticationModel {
     }
 
     export class IRegisterPayload {
+        @IsNotEmpty()
+        @IsNumber()
         id_setting_company: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         id_user_group: number;
+
+        @IsNotEmpty()
+        @IsString()
         full_name: string;
+
+        @IsNotEmpty()
+        @IsString()
         username: string;
+
+        @IsNotEmpty()
+        @IsString()
         password: string;
+
+        @IsNotEmpty()
+        @IsEmail()
         email: string;
+
+        @IsOptional()
+        @IsString()
         address?: string;
+
+        @IsOptional()
+        @IsString()
         phone?: string;
+
+        @IsOptional()
+        @IsString()
         whatsapp?: string;
+
+        @IsOptional()
+        @IsString()
         notes?: string;
     }
 
@@ -61,13 +97,36 @@ export namespace AuthenticationModel {
     }
 
     export class UpdateProfile {
+        @IsOptional()
+        @IsString()
         full_name: string;
+
+        @IsOptional()
+        @IsString()
         username: string;
+
+        @IsOptional()
+        @IsString()
         password: string;
+
+        @IsOptional()
+        @IsEmail()
         email: string;
+
+        @IsOptional()
+        @IsString()
         address?: string;
+
+        @IsOptional()
+        @IsString()
         phone?: string;
+
+        @IsOptional()
+        @IsString()
         whatsapp?: string;
+
+        @IsOptional()
+        @IsString()
         notes?: string;
     }
 }

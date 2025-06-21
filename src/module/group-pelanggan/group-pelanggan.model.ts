@@ -1,3 +1,5 @@
+import { IsBoolean, IsNotEmpty, IsNumber, IsString } from "class-validator";
+
 export namespace GroupPelangganModel {
     export class IGroupPelanggan {
         id_group_pelanggan: number;
@@ -26,12 +28,22 @@ export namespace GroupPelangganModel {
     }
 
     export class CreateGroupPelanggan {
+        @IsNotEmpty()
+        @IsString()
         group_pelanggan: string;
     }
 
     export class UpdateGroupPelanggan {
+        @IsNotEmpty()
+        @IsNumber()
         id_group_pelanggan: number;
+
+        @IsNotEmpty()
+        @IsString()
         group_pelanggan: string;
+
+        @IsNotEmpty()
+        @IsBoolean()
         is_active: boolean;
     }
 }

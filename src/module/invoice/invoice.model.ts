@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional } from "class-validator";
+import { IsDateString, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
 
 export namespace InvoiceModel {
     export class IInvoice {
@@ -68,37 +68,122 @@ export namespace InvoiceModel {
     }
 
     export class CreateInvoice {
+        @IsOptional()
+        @IsString()
         invoice_number?: string;
+
+        @IsNotEmpty()
+        @IsDateString()
         invoice_date: Date;
+
+        @IsNotEmpty()
+        @IsNumber()
         id_pelanggan: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         id_pelanggan_product: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         id_product: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         price: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         diskon_percentage: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         diskon_rupiah: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         pajak: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         admin_fee: number;
+
+        @IsNotEmpty()
+        @IsString()
         unique_code: string;
+
+        @IsNotEmpty()
+        @IsNumber()
         total: number;
+
+        @IsNotEmpty()
+        @IsDateString()
         due_date: Date;
+
+        @IsOptional()
+        @IsString()
         notes?: string;
     }
 
     export class UpdateInvoice {
+        @IsNotEmpty()
+        @IsNumber()
         id_invoice: number;
+
+        @IsNotEmpty()
+        @IsString()
         invoice_number: string;
+
+        @IsNotEmpty()
+        @IsDateString()
         invoice_date: Date;
+
+        @IsNotEmpty()
+        @IsNumber()
         id_pelanggan: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         id_pelanggan_product: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         id_product: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         price: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         diskon_percentage: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         diskon_rupiah: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         pajak: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         admin_fee: number;
+
+        @IsNotEmpty()
+        @IsString()
         unique_code: string;
+
+        @IsNotEmpty()
+        @IsNumber()
         total: number;
+
+        @IsNotEmpty()
+        @IsDateString()
         due_date: Date;
+
+        @IsOptional()
+        @IsString()
         notes?: string;
     }
 
