@@ -1,3 +1,5 @@
+import { IsNotEmpty, IsString, IsNumber, IsBoolean } from "class-validator";
+
 export namespace UserGroupModel {
     export class IUserGroup {
         id_user_group: number;
@@ -26,12 +28,22 @@ export namespace UserGroupModel {
     }
 
     export class CreateUserGroup {
+        @IsNotEmpty()
+        @IsString()
         user_group: string;
-    }
+      }
 
-    export class UpdateUserGroup {
+      export class UpdateUserGroup {
+        @IsNotEmpty()
+        @IsNumber()
         id_user_group: number;
+      
+        @IsNotEmpty()
+        @IsString()
         user_group: string;
+      
+        @IsNotEmpty()
+        @IsBoolean()
         is_active: boolean;
-    }
+      }
 }

@@ -3,6 +3,8 @@ import { AppModule } from './app.module';
 import { PrismaService } from './prisma.service';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as bodyParser from 'body-parser';
+import { DtoExceptionsFilter } from './helper/filter/dto-exception.filter';
+import { CustomValidationPipe } from './helper/filter/custom-validation.pipe';
 declare const module: any;
 
 async function bootstrap() {
@@ -33,6 +35,9 @@ async function bootstrap() {
             docExpansion: "none"
         },
     });
+
+    app.useGlobalPipes(new CustomValidationPipe());
+    app.useGlobalFilters(new DtoExceptionsFilter());
 
     app.enableCors();
     await app.listen(process.env.PORT);

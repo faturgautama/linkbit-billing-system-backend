@@ -1,3 +1,5 @@
+import { IsNotEmpty, IsNumber, IsDateString } from "class-validator";
+
 export namespace PaymentModel {
     export class IPayment {
         id_payment: number;
@@ -59,9 +61,20 @@ export namespace PaymentModel {
     }
 
     export class CreatePaymentCash {
+        @IsNotEmpty()
+        @IsNumber()
         id_invoice: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         id_payment_method_manual: number;
+
+        @IsNotEmpty()
+        @IsDateString()
         payment_date: Date;
+
+        @IsNotEmpty()
+        @IsNumber()
         payment_amount: number;
     }
 
@@ -79,9 +92,20 @@ export namespace PaymentModel {
     }
 
     export class UpdatePaymentCash {
+        @IsNotEmpty()
+        @IsNumber()
         id_payment: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         id_invoice: number;
+
+        @IsNotEmpty()
+        @IsNumber()
         id_payment_method_manual: number;
+
+        @IsNotEmpty()
+        @IsDateString()
         payment_date: Date;
     }
 
