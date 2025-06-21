@@ -12,57 +12,46 @@ export class ActivityLoggerMiddleware implements NestMiddleware {
     ) { }
 
     async use(req: Request, res: Response, next: NextFunction) {
-        const endpoint = req['params']['0'];
+        const endpoint = req.params['0'] || req.originalUrl || '';
 
-        if (endpoint.includes('authentication') || endpoint.includes('create-payment') || endpoint.includes("callback")) {
-            return next();
-        };
+        // Skip if these paths
+        const excludedPaths = ['authentication', 'create-payment', 'callback'];
+        if (excludedPaths.some(p => endpoint.includes(p))) return next();
 
-        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-            // Extract IP
-            const ipAddress =
-                (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
-                req.connection.remoteAddress ||
-                req.socket.remoteAddress;
+        // Only log certain GETs
+        const isWriteMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
+        const isSpecialGet = req.method === 'GET' && (
+            endpoint.includes('retrigger') || endpoint.includes('send-message')
+        );
 
-            // Parse browser info
+        if (isWriteMethod || isSpecialGet) {
+            const ipAddress = req.ip; // ✅ Trust proxy already set
             const agent = useragent.parse(req.headers['user-agent'] || '');
-
-            // Extract user from JWT token
             let id_user: number | null = null;
-            const authHeader = req.headers['authorization'];
 
-            if (authHeader && authHeader.startsWith('Bearer ')) {
-                const token = authHeader.split(' ')[1];
+            const authHeader = req.headers['authorization'];
+            if (authHeader?.startsWith('Bearer ')) {
                 try {
+                    const token = authHeader.split(' ')[1];
                     const decoded: any = this.jwtService.verify(token);
-                    id_user = decoded?.id_user || null;
+                    id_user = decoded?.id_user ?? null;
                 } catch (err) {
                     console.warn('Invalid JWT token:', err.message);
                 }
             }
 
-            const payloadCreate = {
-                id_user: id_user,
-                endpoint: endpoint,
+            const payload = {
+                id_user,
+                endpoint,
                 method: req.method,
-                request_body: ['POST', 'PUT', 'PATCH'].includes(req.method)
-                    ? req.body
-                    : {},
-                ip_address: String(ipAddress),
+                request_body: isWriteMethod ? req.body : {},
+                ip_address: ipAddress,
                 browser: agent.toString(),
             };
 
-            // Save log only if user is authenticated
-            await this.prisma.log_activity_user.create({
-                data: payloadCreate
-            });
+            await this.prisma.log_activity_user.create({ data: payload });
+        }
 
-            next();
-        };
-
-        if (req.method == 'GET') {
-            return next();
-        };
+        return next();
     }
 }
