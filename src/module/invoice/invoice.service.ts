@@ -2,8 +2,8 @@ import { HttpException, HttpStatus, Injectable, Scope } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { InvoiceModel } from './invoice.model';
 import { Request } from 'express';
-import { InvoiceCronService } from '../../scheduler/invoice-cron.service';
-import { SendMessageCronService } from '../../scheduler/send-message-cron.service';
+// import { InvoiceCronService } from '../../scheduler/invoice-cron.service';
+// import { SendMessageCronService } from '../../scheduler/send-message-cron.service';
 import { UtilityService } from 'src/helper/utility/utility.service';
 import { ChannelProviderRouterService } from 'src/helper/services/channel-whatsapp-provider/channel-provider-router.service';
 import { WhatsappChannelProviderModel } from 'src/helper/services/channel-whatsapp-provider/channel-provider.model';
@@ -14,8 +14,8 @@ export class InvoiceService {
     constructor(
         private _prismaService: PrismaService,
         private _utilityService: UtilityService,
-        private _invoiceCronService: InvoiceCronService,
-        private _sendMessageCronService: SendMessageCronService,
+        // private _invoiceCronService: InvoiceCronService,
+        // private _sendMessageCronService: SendMessageCronService,
         private _channelProviderRouterService: ChannelProviderRouterService,
     ) { }
 
@@ -388,8 +388,6 @@ export class InvoiceService {
                 create_at: this._utilityService.onFormatDate(res.create_at, 'DD-MM-yyyy'),
             };
 
-            console.log("formatted res =>", formattedRes);
-
             const template = res.pelanggan.setting_company.tagihan_editor_invoice;
             const newTemplate = template.replace(/\${(.*?)}/g, (_, key) => formattedRes[key.trim()] || "");
             return {
@@ -653,7 +651,7 @@ export class InvoiceService {
 
     async retriggerJobInvoice() {
         try {
-            await this._invoiceCronService.generateInvoices();
+            // await this._invoiceCronService.generateInvoices();
 
             return {
                 status: true,
@@ -679,7 +677,7 @@ export class InvoiceService {
 
     async retriggerJobSendMessage() {
         try {
-            await this._sendMessageCronService.sendInvoiceNotifications();
+            // await this._sendMessageCronService.sendInvoiceNotifications();
 
             return {
                 status: true,

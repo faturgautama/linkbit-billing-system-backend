@@ -139,6 +139,7 @@ export class LogActivityService {
                 .log_whatsapp_message
                 .findMany({
                     where: newQueries,
+                    take: 100,
                     orderBy: {
                         sent_at: 'asc'
                     },
@@ -164,7 +165,7 @@ export class LogActivityService {
                                 }
                             }
                         }
-                    }
+                    },
                 });
 
             return {
