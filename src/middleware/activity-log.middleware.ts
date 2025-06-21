@@ -20,7 +20,10 @@ export class ActivityLoggerMiddleware implements NestMiddleware {
 
         if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
             // Extract IP
-            const ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+            const ipAddress =
+                (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+                req.connection.remoteAddress ||
+                req.socket.remoteAddress;
 
             // Parse browser info
             const agent = useragent.parse(req.headers['user-agent'] || '');
