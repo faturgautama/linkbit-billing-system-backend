@@ -47,8 +47,8 @@ import { ChannelWhatsappService } from './module/channel-whatsapp/channel-whatsa
 import { AxiosService } from './helper/utility/axios.service';
 import { ImageHelperService } from './helper/utility/image-helper.service';
 import { UtilityService } from './helper/utility/utility.service';
-import { InvoiceCronService } from './scheduler/invoice-cron.service';
-import { SendMessageCronService } from './scheduler/send-message-cron.service';
+// import { InvoiceCronService } from './scheduler/invoice-cron.service';
+// import { SendMessageCronService } from './scheduler/send-message-cron.service';
 import { ChannelProviderRouterService } from './helper/services/channel-whatsapp-provider/channel-provider-router.service';
 import { LinkbitWapService } from './helper/services/channel-whatsapp-provider/provider/linkbit-wap.service';
 import { QontakWapService } from './helper/services/channel-whatsapp-provider/provider/qontak-wap.service';
@@ -100,8 +100,8 @@ import { QontakWapService } from './helper/services/channel-whatsapp-provider/pr
         ImageHelperService,
         UtilityService,
         AppGateway,
-        InvoiceCronService,
-        SendMessageCronService,
+        // InvoiceCronService,
+        // SendMessageCronService,
         TemplateEditorService,
         LogActivityService,
         ChannelWhatsappService,
