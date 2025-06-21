@@ -5,10 +5,11 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as bodyParser from 'body-parser';
 import { DtoExceptionsFilter } from './helper/filter/dto-exception.filter';
 import { CustomValidationPipe } from './helper/filter/custom-validation.pipe';
+import { NestExpressApplication } from '@nestjs/platform-express';
 declare const module: any;
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create<NestExpressApplication>(AppModule);;
     app.setGlobalPrefix('api/v1');
 
     const prisma = app.get(PrismaService);
@@ -38,6 +39,7 @@ async function bootstrap() {
 
     app.useGlobalPipes(new CustomValidationPipe());
     app.useGlobalFilters(new DtoExceptionsFilter());
+    app.set('trust proxy', true)
 
     app.enableCors();
     await app.listen(process.env.PORT);
