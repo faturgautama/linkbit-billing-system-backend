@@ -1198,6 +1198,8 @@ export class PaymentService {
                     }
                 });
 
+            console.log("payment data =>", payment);
+
             if (!payment) {
                 return {
                     status: false,
@@ -1258,6 +1260,8 @@ export class PaymentService {
                         total: parseInt(payment.invoice.total as any) + admin_fee_after_vat
                     }
                 });
+
+            console.log("invoice to update =>", updateInvoice);
 
             if (!updateInvoice) {
                 return {
