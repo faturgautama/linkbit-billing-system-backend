@@ -17,6 +17,7 @@ export class ChannelProviderRouterService {
     async handleSendMessage(req: Request, type: string, data: any) {
         try {
             const id_setting_company = parseInt(req['user']['id_setting_company']);
+
             const channel_whatsapp_default = await this._prismaService
                 .setting_channel_whatsapp
                 .findFirst({

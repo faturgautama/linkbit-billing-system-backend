@@ -181,6 +181,10 @@ export namespace PelangganModel {
         @IsNotEmpty()
         @IsNumber()
         days_before_send_invoice: number;
+
+        @IsNotEmpty()
+        @IsBoolean()
+        is_active: boolean;
     }
 
     export class UpdateManyProductPelanggan {
