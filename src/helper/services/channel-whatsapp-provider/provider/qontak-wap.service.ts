@@ -165,7 +165,7 @@ export class QontakWapService {
             return await firstValueFrom(this._axiosService.onAxiosRequest(send_message_payload));
 
         } catch (error) {
-            throw error;
+            // throw error;
         }
     }
 
@@ -225,7 +225,7 @@ export class QontakWapService {
             return await firstValueFrom(this._axiosService.onAxiosRequest(send_message_payload));
 
         } catch (error) {
-            throw error;
+            // throw error;
         }
     }
 
@@ -285,7 +285,7 @@ export class QontakWapService {
             return await firstValueFrom(this._axiosService.onAxiosRequest(send_message_payload));
 
         } catch (error) {
-            throw error;
+            // throw error;
         }
     }
 }

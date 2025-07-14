@@ -445,6 +445,7 @@ export class PelangganService {
                             price: payload.price,
                             days_before_send_invoice: payload.days_before_send_invoice,
                             start_date: new Date(payload.start_date),
+                            is_active: payload.is_active,
                             update_at: new Date(),
                             update_by: parseInt(req['user']['id_user'] as any)
                         }
@@ -460,6 +461,7 @@ export class PelangganService {
                             invoice_cycle: payload.invoice_cycle,
                             price: payload.price,
                             days_before_send_invoice: payload.days_before_send_invoice,
+                            is_active: true,
                             create_at: new Date(),
                             create_by: parseInt(req['user']['id_user'] as any)
                         }
