@@ -23,7 +23,13 @@ export class InvoiceCronService {
                     is_active: true,
                     id_setting_company: company.id_setting_company,
                 },
-                include: { pelanggan_product: true },
+                include: {
+                    pelanggan_product: {
+                        where: {
+                            is_active: true
+                        }
+                    }
+                },
             });
 
             for (const customer of customers) {

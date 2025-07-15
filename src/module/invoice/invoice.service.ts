@@ -661,15 +661,35 @@ export class InvoiceService {
                     },
                 });
 
-                req['user']['id_setting_company'] = invoice.pelanggan.id_setting_company;
-                let resultMessage = await this._channelProviderRouterService.handleSendMessage(
-                    req,
-                    'INVOICE',
-                    invoice,
-                );
+                const checkLog = await this._prismaService.log_whatsapp_message.findFirst({
+                    where: {
+                        id_invoice: parseInt(invoice.id_invoice as any)
+                    }
+                });
 
-                if (resultMessage.status) {
-                    success += 1;
+                if (!checkLog) {
+                    console.log("invoice =>", {
+                        id_invoice: invoice.id_invoice,
+                        pelanggan: invoice.pelanggan.full_name,
+                        invoice_number: invoice.invoice_number,
+                        invoice_date: invoice.invoice_date,
+                        invoice_status: invoice.invoice_status,
+                        notes: invoice.notes,
+                    });
+                    console.log("===================================");
+
+                    req['user']['id_setting_company'] = invoice.pelanggan.id_setting_company;
+                    let resultMessage = await this._channelProviderRouterService.handleSendMessage(
+                        req,
+                        'INVOICE',
+                        invoice,
+                    );
+
+                    if (resultMessage.status) {
+                        success += 1;
+                    } else {
+                        failed += 1;
+                    }
                 } else {
                     failed += 1;
                 }
@@ -714,18 +734,27 @@ export class InvoiceService {
             });
 
             for (const invoice of invoices) {
-                if (invoice.id_invoice > 2194 && invoice.invoice_status == 'PENDING') {
-                    console.log("invoice =>", {
-                        id_invoice: invoice.id_invoice,
-                        pelanggan: invoice.pelanggan.full_name,
-                        invoice_number: invoice.invoice_number,
-                        invoice_date: invoice.invoice_date,
-                        invoice_status: invoice.invoice_status,
-                        notes: invoice.notes,
-                    });
-                    console.log("===================================");
+                if (invoice.id_invoice > 2259 && invoice.invoice_status == 'PENDING') {
                     req['user']['id_setting_company'] = invoice.pelanggan.id_setting_company;
-                    const resultMessage = await this._channelProviderRouterService.handleSendMessage(req, 'INVOICE', invoice);
+
+                    const checkLog = await this._prismaService.log_whatsapp_message.findFirst({
+                        where: {
+                            id_invoice: parseInt(invoice.id_invoice as any)
+                        }
+                    });
+
+                    if (!checkLog) {
+                        console.log("invoice =>", {
+                            id_invoice: invoice.id_invoice,
+                            pelanggan: invoice.pelanggan.full_name,
+                            invoice_number: invoice.invoice_number,
+                            invoice_date: invoice.invoice_date,
+                            invoice_status: invoice.invoice_status,
+                            notes: invoice.notes,
+                        });
+                        console.log("===================================");
+                        const resultMessage = await this._channelProviderRouterService.handleSendMessage(req, 'INVOICE', invoice);
+                    }
                 }
             }
 

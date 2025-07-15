@@ -52,14 +52,33 @@ export class SendMessageCronService {
         console.log("total invoice =>", invoices.length);
 
         for (const invoice of invoices) {
-            console.log("invoice =>", invoice);
             const req: any = {
                 user: {
                     id_setting_company: invoice.pelanggan.id_setting_company
                 }
+            };
+
+            req['user']['id_setting_company'] = invoice.pelanggan.id_setting_company;
+
+            const checkLog = await this._prismaService.log_whatsapp_message.findFirst({
+                where: {
+                    id_invoice: parseInt(invoice.id_invoice as any)
+                }
+            });
+
+            if (!checkLog) {
+                console.log("send message to invoice =>", {
+                    id_invoice: invoice.id_invoice,
+                    pelanggan: invoice.pelanggan.full_name,
+                    whatsapp_number: invoice.pelanggan.whatsapp,
+                    invoice_number: invoice.invoice_number,
+                    invoice_date: invoice.invoice_date,
+                    invoice_status: invoice.invoice_status,
+                    notes: invoice.notes,
+                });
+                console.log("===================================");
+                const resultMessage = await this._channelProviderRouterService.handleSendMessage(req, 'INVOICE', invoice);
             }
-            await this._channelProviderRouterService.handleSendMessage(req, 'INVOICE', invoice);
-            await this.sleep(20000); // tunggu 20 detik
         }
     }
 }
