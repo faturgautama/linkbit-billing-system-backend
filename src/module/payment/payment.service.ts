@@ -723,7 +723,7 @@ export class PaymentService {
 
                     const updateExpiredDateVaXendit = await firstValueFrom(this._axiosService.onAxiosRequest(updateVirtualAccountParams));
 
-                    if (!updateExpiredDateVaXendit.status) {
+                    if (!updateExpiredDateVaXendit.status && updateExpiredDateVaXendit.data.error_code != 'CALLBACK_VIRTUAL_ACCOUNT_INACTIVE_ERROR') {
                         return {
                             status: false,
                             message: 'Failed To Update VA Expiration Date',
