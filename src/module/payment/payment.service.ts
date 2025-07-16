@@ -385,7 +385,9 @@ export class PaymentService {
                 .payment
                 .findFirst({
                     where: {
-                        id_invoice: parseInt(data.id_invoice ? data.id_invoice : data),
+                        invoice: {
+                            invoice_number: invoice.data.invoice_number
+                        }
                     },
                 });
 
