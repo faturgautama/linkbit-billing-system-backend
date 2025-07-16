@@ -1200,8 +1200,6 @@ export class PaymentService {
                     }
                 });
 
-            console.log("payment data =>", payment);
-
             if (!payment) {
                 return {
                     status: false,
@@ -1219,7 +1217,7 @@ export class PaymentService {
                     data: {
                         payment_status: 'PAID',
                         update_at: new Date(),
-                        update_by: 9999,
+                        update_by: 8888,
                     }
                 });
 
@@ -1259,11 +1257,11 @@ export class PaymentService {
                     data: {
                         invoice_status: 'PAID',
                         admin_fee: parseFloat(admin_fee_after_vat as any),
-                        total: parseInt(payment.invoice.total as any) + admin_fee_after_vat
+                        total: parseInt(payment.invoice.total as any) + admin_fee_after_vat,
+                        update_at: new Date(),
+                        update_by: 8888,
                     }
                 });
-
-            console.log("invoice to update =>", updateInvoice);
 
             if (!updateInvoice) {
                 return {
