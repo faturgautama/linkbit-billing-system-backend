@@ -16,7 +16,7 @@ export class InvoiceService {
     private _invoiceCronService: InvoiceCronService,
     private _sendMessageCronService: SendMessageCronService,
     private _channelProviderRouterService: ChannelProviderRouterService,
-  ) {}
+  ) { }
 
   async getAll(
     req: Request,
@@ -130,6 +130,7 @@ export class InvoiceService {
               full_name: true,
               pelanggan_code: true,
               whatsapp: true,
+              alamat: true,
               setting_company: {
                 select: {
                   id_setting_company: true,
@@ -178,6 +179,7 @@ export class InvoiceService {
               item.pelanggan.setting_company.id_setting_company,
             company_name: item.pelanggan.setting_company.company_name,
             full_name: item.pelanggan.full_name,
+            alamat: item.pelanggan.alamat,
             pelanggan_code: item.pelanggan.pelanggan_code,
             whatsapp: item.pelanggan.whatsapp,
             id_pelanggan_product: item.id_pelanggan_product,
@@ -220,8 +222,8 @@ export class InvoiceService {
       const status = error.message.includes('not found')
         ? HttpStatus.NOT_FOUND
         : error.message.includes('bad request')
-        ? HttpStatus.BAD_REQUEST
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+          ? HttpStatus.BAD_REQUEST
+          : HttpStatus.INTERNAL_SERVER_ERROR;
 
       throw new HttpException(
         {
@@ -327,8 +329,8 @@ export class InvoiceService {
       const status = error.message.includes('not found')
         ? HttpStatus.NOT_FOUND
         : error.message.includes('bad request')
-        ? HttpStatus.BAD_REQUEST
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+          ? HttpStatus.BAD_REQUEST
+          : HttpStatus.INTERNAL_SERVER_ERROR;
 
       throw new HttpException(
         {
@@ -429,8 +431,8 @@ export class InvoiceService {
       const status = error.message.includes('not found')
         ? HttpStatus.NOT_FOUND
         : error.message.includes('bad request')
-        ? HttpStatus.BAD_REQUEST
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+          ? HttpStatus.BAD_REQUEST
+          : HttpStatus.INTERNAL_SERVER_ERROR;
 
       throw new HttpException(
         {
@@ -467,14 +469,13 @@ export class InvoiceService {
         invoiceMonthCount < 10
           ? '000'
           : invoiceMonthCount < 100
-          ? '00'
-          : invoiceMonthCount < 1000
-          ? '0'
-          : '';
+            ? '00'
+            : invoiceMonthCount < 1000
+              ? '0'
+              : '';
 
-      const invoice_number = `INV-${payload.id_pelanggan}-${
-        month > 9 ? month : `0${month}`
-      }${year}-${prefix}${invoiceMonthCount + 1}`;
+      const invoice_number = `INV-${payload.id_pelanggan}-${month > 9 ? month : `0${month}`
+        }${year}-${prefix}${invoiceMonthCount + 1}`;
       let res = await this._prismaService.invoice.create({
         data: {
           ...payload,
@@ -493,8 +494,8 @@ export class InvoiceService {
       const status = error.message.includes('not found')
         ? HttpStatus.NOT_FOUND
         : error.message.includes('bad request')
-        ? HttpStatus.BAD_REQUEST
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+          ? HttpStatus.BAD_REQUEST
+          : HttpStatus.INTERNAL_SERVER_ERROR;
 
       throw new HttpException(
         {
@@ -531,8 +532,8 @@ export class InvoiceService {
       const status = error.message.includes('not found')
         ? HttpStatus.NOT_FOUND
         : error.message.includes('bad request')
-        ? HttpStatus.BAD_REQUEST
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+          ? HttpStatus.BAD_REQUEST
+          : HttpStatus.INTERNAL_SERVER_ERROR;
 
       throw new HttpException(
         {
@@ -597,8 +598,8 @@ export class InvoiceService {
       const status = error.message.includes('not found')
         ? HttpStatus.NOT_FOUND
         : error.message.includes('bad request')
-        ? HttpStatus.BAD_REQUEST
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+          ? HttpStatus.BAD_REQUEST
+          : HttpStatus.INTERNAL_SERVER_ERROR;
 
       throw new HttpException(
         {
@@ -803,8 +804,8 @@ export class InvoiceService {
       const status = error.message.includes('not found')
         ? HttpStatus.NOT_FOUND
         : error.message.includes('bad request')
-        ? HttpStatus.BAD_REQUEST
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+          ? HttpStatus.BAD_REQUEST
+          : HttpStatus.INTERNAL_SERVER_ERROR;
 
       throw new HttpException(
         {
@@ -829,8 +830,8 @@ export class InvoiceService {
       const status = error.message.includes('not found')
         ? HttpStatus.NOT_FOUND
         : error.message.includes('bad request')
-        ? HttpStatus.BAD_REQUEST
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+          ? HttpStatus.BAD_REQUEST
+          : HttpStatus.INTERNAL_SERVER_ERROR;
 
       throw new HttpException(
         {
